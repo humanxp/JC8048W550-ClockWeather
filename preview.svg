@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480" viewBox="0 0 800 480"
+     font-family="'SF Pro Display',-apple-system,'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif">
+  <!--
+    ClockWeather 界面示意图（iOS 蓝调 + 立体卡片）
+    版式：左侧时钟（193px 粗体）+ 右侧天气卡 + 底部 今天/明天/后天
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#061020"/>
+      <stop offset="1" stop-color="#123A66"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1C3E63"/>
+      <stop offset="1" stop-color="#143050"/>
+    </linearGradient>
+    <linearGradient id="secbar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0A84FF"/>
+      <stop offset="1" stop-color="#64D2FF"/>
+    </linearGradient>
+    <linearGradient id="tempbar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#64D2FF"/>
+      <stop offset="1" stop-color="#FFB340"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFD75E"/>
+      <stop offset="1" stop-color="#FFB300"/>
+    </linearGradient>
+    <filter id="soft" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#000814" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <rect width="800" height="480" fill="url(#bg)"/>
+
+  <!-- ===================== 顶栏 ===================== -->
+  <text x="26" y="34" font-size="22" fill="#FFFFFF">宁波 · 2025年4月6日 星期日</text>
+  <rect x="436" y="19" width="10" height="10" rx="5" fill="#30D158"/>
+  <text x="774" y="36" font-size="22" fill="#30D158" text-anchor="end">已联网 · 更新 14:22</text>
+  <rect x="0" y="56" width="800" height="1" fill="#2E5A85" opacity="0.5"/>
+
+  <!-- ===================== 时钟区（左侧 0~542）===================== -->
+  <text x="271" y="246" font-size="193" font-weight="bold" fill="#FFFFFF"
+        textAnchor="middle" textLength="518" lengthAdjust="spacingAndGlyphs">08:42</text>
+  <rect x="59.5" y="283.5" width="360" height="10" rx="5" fill="#2A4C73"/>
+  <rect x="59.5" y="283.5" width="226" height="10" rx="5" fill="url(#secbar)"/>
+  <text x="433.5" y="302" font-size="44" fill="#0A84FF">37</text>
+
+  <!-- ===================== 天气卡片（右侧 558~784）===================== -->
+  <rect x="558" y="66" width="226" height="280" rx="22" fill="url(#card)"
+        stroke="#2E5A85" filter="url(#soft)"/>
+  <circle cx="606" cy="120" r="38" fill="#0A84FF" opacity="0.20"/>
+
+  <g transform="translate(572,86) scale(0.654)">
+    <circle cx="37" cy="35" r="26" fill="#FFD75E" opacity="0.22"/>
+    <circle cx="37" cy="35" r="16" fill="url(#sun)"/>
+    <g stroke="#FFC93C" stroke-width="4.5" stroke-linecap="round">
+      <line x1="37" y1="6"  x2="37" y2="15"/>
+      <line x1="37" y1="55" x2="37" y2="64"/>
+      <line x1="8"  y1="35" x2="17" y2="35"/>
+      <line x1="57" y1="35" x2="66" y2="35"/>
+      <line x1="16" y1="14" x2="23" y2="21"/>
+      <line x1="51" y1="49" x2="58" y2="56"/>
+      <line x1="58" y1="14" x2="51" y2="21"/>
+      <line x1="23" y1="49" x2="16" y2="56"/>
+    </g>
+    <circle cx="66" cy="66" r="16" fill="#E9F1FB"/>
+    <circle cx="44" cy="72" r="11" fill="#E9F1FB"/>
+    <circle cx="86" cy="70" r="13" fill="#E9F1FB"/>
+    <rect x="33" y="70" width="63" height="16" rx="8" fill="#E9F1FB"/>
+  </g>
+
+  <text x="654" y="131" font-size="44" fill="#FFFFFF">23.4°</text>
+  <text x="572" y="204" font-size="32" fill="#C3D9F0">多云</text>
+
+  <rect x="574" y="216" width="194" height="1" fill="#2E5A85" opacity="0.7"/>
+
+  <!-- 四项要素：iOS 分组列表（标签灰、数值白、行间内缩分隔线） -->
+  <g font-size="22">
+    <text x="574" y="244" fill="#8FB2D4">体感</text><text x="768" y="244" fill="#FFFFFF" text-anchor="end">25.1°C</text>
+    <rect x="574" y="251" width="194" height="1" fill="#2E5A85" opacity="0.7"/>
+    <text x="574" y="274" fill="#8FB2D4">湿度</text><text x="768" y="274" fill="#FFFFFF" text-anchor="end">62%</text>
+    <rect x="574" y="281" width="194" height="1" fill="#2E5A85" opacity="0.7"/>
+    <text x="574" y="304" fill="#8FB2D4">风速</text><text x="768" y="304" fill="#FFFFFF" text-anchor="end">3.2m/s</text>
+    <rect x="574" y="311" width="194" height="1" fill="#2E5A85" opacity="0.7"/>
+    <text x="574" y="334" fill="#8FB2D4">气压</text><text x="768" y="334" fill="#FFFFFF" text-anchor="end">1013hPa</text>
+  </g>
+
+  <!-- ===================== 今天 / 明天 / 后天 ===================== -->
+  <g>
+    <rect x="16" y="356" width="248" height="112" rx="20" fill="url(#card)"
+          stroke="#2E5A85" filter="url(#soft)"/>
+    <text x="32" y="392" font-size="22" fill="#FFFFFF">今天</text>
+    <g transform="translate(200,364)">
+      <circle cx="18" cy="12" r="11" fill="#E9F1FB"/>
+      <circle cx="7"  cy="16" r="7"  fill="#E9F1FB"/>
+      <circle cx="29" cy="15" r="9"  fill="#E9F1FB"/>
+      <rect x="0" y="15" width="38" height="11" rx="5.5" fill="#E9F1FB"/>
+      <g stroke="#4FA8F5" stroke-width="3" stroke-linecap="round">
+        <line x1="11" y1="31" x2="8"  y2="40"/>
+        <line x1="20" y1="31" x2="17" y2="40"/>
+        <line x1="29" y1="31" x2="26" y2="40"/>
+      </g>
+    </g>
+    <text x="32" y="427" font-size="32" fill="#FFFFFF">26°</text>
+    <text x="88" y="427" font-size="32" fill="#8FB2D4">/</text>
+    <text x="106" y="427" font-size="32" fill="#8FB2D4">18°</text>
+    <rect x="32" y="446" width="216" height="6" rx="3" fill="#2A4C73"/>
+    <rect x="51" y="446" width="157" height="6" rx="3" fill="url(#tempbar)"/>
+  </g>
+
+  <g>
+    <rect x="276" y="356" width="248" height="112" rx="20" fill="url(#card)"
+          stroke="#2E5A85" filter="url(#soft)"/>
+    <text x="292" y="392" font-size="22" fill="#FFFFFF">明天</text>
+    <g transform="translate(460,364)">
+      <circle cx="24" cy="14" r="12" fill="#A8B8CE"/>
+      <circle cx="11" cy="19" r="9"  fill="#A8B8CE"/>
+      <circle cx="37" cy="18" r="10" fill="#A8B8CE"/>
+      <rect x="2" y="17" width="44" height="12" rx="6" fill="#A8B8CE"/>
+      <circle cx="18" cy="11" r="10" fill="#E9F1FB"/>
+      <circle cx="7"  cy="15" r="7"  fill="#E9F1FB"/>
+      <circle cx="29" cy="14" r="8"  fill="#E9F1FB"/>
+      <rect x="0" y="13" width="38" height="11" rx="5.5" fill="#E9F1FB"/>
+    </g>
+    <text x="292" y="427" font-size="32" fill="#FFFFFF">24°</text>
+    <text x="348" y="427" font-size="32" fill="#8FB2D4">/</text>
+    <text x="366" y="427" font-size="32" fill="#8FB2D4">17°</text>
+    <rect x="292" y="446" width="216" height="6" rx="3" fill="#2A4C73"/>
+    <rect x="292" y="446" width="137" height="6" rx="3" fill="url(#tempbar)"/>
+  </g>
+
+  <g>
+    <rect x="536" y="356" width="248" height="112" rx="20" fill="url(#card)"
+          stroke="#2E5A85" filter="url(#soft)"/>
+    <text x="552" y="392" font-size="22" fill="#FFFFFF">后天</text>
+    <g transform="translate(716,364)">
+      <circle cx="26" cy="26" r="22" fill="#FFD75E" opacity="0.22"/>
+      <circle cx="26" cy="26" r="14" fill="url(#sun)"/>
+      <g stroke="#FFC93C" stroke-width="4" stroke-linecap="round">
+        <line x1="26" y1="2"  x2="26" y2="9"/>
+        <line x1="26" y1="43" x2="26" y2="50"/>
+        <line x1="2"  y1="26" x2="9"  y2="26"/>
+        <line x1="43" y1="26" x2="50" y2="26"/>
+        <line x1="9"  y1="9"  x2="14" y2="14"/>
+        <line x1="38" y1="38" x2="43" y2="43"/>
+        <line x1="43" y1="9"  x2="38" y2="14"/>
+        <line x1="14" y1="38" x2="9"  y2="43"/>
+      </g>
+    </g>
+    <text x="552" y="427" font-size="32" fill="#FFFFFF">28°</text>
+    <text x="608" y="427" font-size="32" fill="#8FB2D4">/</text>
+    <text x="626" y="427" font-size="32" fill="#8FB2D4">19°</text>
+    <rect x="552" y="446" width="216" height="6" rx="3" fill="#2A4C73"/>
+    <rect x="591" y="446" width="177" height="6" rx="3" fill="url(#tempbar)"/>
+  </g>
+</svg>
