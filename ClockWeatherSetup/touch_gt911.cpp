@@ -4,6 +4,7 @@
 #include <Wire.h>
 
 #include "board_pins.h"
+#include "config.h"
 
 /* ---------------- GT911 寄存器 ---------------- */
 #define GT911_REG_CONFIG_VERSION   0x8047
@@ -11,7 +12,26 @@
 #define GT911_REG_CONFIG_YMAX      0x804A   /* 2 字节，小端 */
 #define GT911_REG_PRODUCT_ID       0x8140   /* 4 字节 ASCII */
 #define GT911_REG_STATUS           0x814E
-#define GT911_REG_POINT1           0x8150   /* 每个触摸点 8 字节 */
+/* ⚠ 触摸点记录的起始地址是 0x814F，不是 0x8150！
+ *
+ * 一个触摸点占 8 字节，从 0x814F 开始：
+ *      0x814F        track id
+ *      0x8150~0x8151 X 坐标（小端）
+ *      0x8152~0x8153 Y 坐标（小端）
+ *      0x8154~0x8155 触摸面积
+ *      0x8156        保留
+ * 下面解析时用 p[1..2] 当 X、p[3..4] 当 Y，所以基准必须取 0x814F。
+ *
+ * 曾经这里写成 0x8150，于是 X 读成了「X 高字节 + Y 低字节」、
+ * Y 读成了「Y 高字节 + 面积低字节」，算出来都是几千的数，
+ * 再乘屏幕尺寸就被 clamp 到右下角 —— 现象就是：
+ * 触摸能按下（次数在涨），但坐标永远是 799,479，点哪儿都没反应。
+ *
+ * 交叉核对（两个都从 0x814E 的 status 之后、即 0x814F 开始读）：
+ *   esp-bsp  esp_lcd_touch_gt911.c : 读 0x814E+1，x = buf[3]<<8|buf[2]
+ *   LovyanGFX Touch_GT911.cpp      : x = data[1]（data 指向 0x814F）
+ */
+#define GT911_REG_POINT1           0x814F   /* 每个触摸点 8 字节（含 track id） */
 
 /* 连续 1.5 秒没有新数据就认为手指已抬起 */
 #define TOUCH_STALE_MS             1500
@@ -24,6 +44,10 @@ static int32_t  s_last_x      = 0;
 static int32_t  s_last_y      = 0;
 static bool     s_last_touch  = false;
 static uint32_t s_last_seen_ms = 0;
+
+/* 诊断计数（见 touch_gt911.h 的 TouchDiag） */
+static uint32_t s_press_count = 0;
+static uint32_t s_read_fail   = 0;
 
 /* ------------------------------------------------------------------ */
 /*  底层 I2C 读写                                                      */
@@ -135,6 +159,9 @@ bool touch_init()
 
     /* 清一次状态，丢弃复位期间的脏数据 */
     gt911_write8(GT911_REG_STATUS, 0);
+
+    s_press_count = 0;
+    s_read_fail   = 0;
     return true;
 }
 
@@ -147,6 +174,7 @@ bool touch_read(int32_t *x, int32_t *y)
 
     uint8_t status = 0;
     if (!gt911_read(GT911_REG_STATUS, &status, 1)) {
+        s_read_fail++;
         /* I2C 读失败：维持上一状态，但超时后强制松开，避免卡住 */
         if (s_last_touch && (millis() - s_last_seen_ms) > TOUCH_STALE_MS) {
             s_last_touch = false;
@@ -181,16 +209,30 @@ bool touch_read(int32_t *x, int32_t *y)
 
                 s_last_x = sx;
                 s_last_y = sy;
+                if (!s_last_touch) {
+                    s_press_count++;      /* 新的一次按下（不是按住时的重复采样） */
+#if DEBUG_SERIAL
+                    Serial.printf("[触摸] 按下 (%d, %d)\n", (int)sx, (int)sy);
+#endif
+                }
                 s_last_touch  = true;
                 s_last_seen_ms = millis();
             }
         } else {
             /* 点数为 0：手指全部抬起 */
+#if DEBUG_SERIAL
+            if (s_last_touch) {
+                Serial.printf("[触摸] 抬起 (%d, %d)\n", (int)s_last_x, (int)s_last_y);
+            }
+#endif
             s_last_touch = false;
         }
         /* 必须写 0 清标志，否则芯片不再上报 */
         gt911_write8(GT911_REG_STATUS, 0);
     } else if (s_last_touch && (millis() - s_last_seen_ms) > TOUCH_STALE_MS) {
+#if DEBUG_SERIAL
+        Serial.println("[触摸] 抬起（1.5 秒没有新数据，超时判定）");
+#endif
         s_last_touch = false;
     }
 
@@ -204,4 +246,18 @@ bool touch_read(int32_t *x, int32_t *y)
 uint8_t touch_addr()
 {
     return s_addr;
+}
+
+void touch_diag(TouchDiag *out)
+{
+    if (out == nullptr) return;
+    out->addr        = s_addr;
+    out->pressed     = s_last_touch;
+    out->x           = s_last_x;
+    out->y           = s_last_y;
+    out->press_count = s_press_count;
+    out->read_fail   = s_read_fail;
+    out->raw_max_x   = s_cfg_max_x;
+    out->raw_max_y   = s_cfg_max_y;
+    out->swap_xy     = s_swap_xy;
 }

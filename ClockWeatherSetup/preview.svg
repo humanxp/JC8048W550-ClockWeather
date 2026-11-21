@@ -1,0 +1,312 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="4256" height="576" viewBox="0 0 4256 576"
+     font-family="'SF Pro Display',-apple-system,'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif">
+  <!--
+    ClockWeatherSetup 效果示意图（800x480 五屏并排）
+    坐标是按 ui.cpp / setup_ui.cpp 里的布局常量画的，改了代码记得重跑：
+        node gen_preview.js ../ClockWeatherSetup/preview.svg
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#061020"/><stop offset="1" stop-color="#123A66"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1C3E63"/><stop offset="1" stop-color="#143050"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="#04080F"/>
+  <g transform="translate(40,56)">
+    <rect width="800" height="480" rx="10" fill="url(#bg)" stroke="#2E5A85"/>
+    <text x="400" y="-18" font-size="20" fill="#C3D9F0" text-anchor="middle">① 大时钟（平时显示 · 最下面是当前详细天气 · 点屏幕切看板）</text>
+    <clipPath id="clip0"><rect width="800" height="480" rx="10"/></clipPath>
+    <g clip-path="url(#clip0)">
+    <circle cx="167" cy="34" r="5" fill="#30D158"/>
+    <text x="780" y="41" font-size="22" fill="#30D158" text-anchor="end">已联网 · 更新 14:22</text>
+    <text x="400" y="222" font-size="290" fill="#FFFFFF" text-anchor="middle">08:42</text>
+    <text x="400" y="332" font-size="40" fill="#C3D9F0" text-anchor="middle">9月20日 周六</text>
+    <rect x="24" y="352" width="752" height="116" rx="20" fill="url(#card)" stroke="#2E5A85"/>
+    <circle cx="46" cy="403.28" r="14.56" fill="#FFD60A" opacity="0.9"/>
+    <ellipse cx="40.4" cy="422.32" rx="19.040000000000003" ry="11.200000000000001" fill="#E8F2FF"/>
+    <ellipse cx="54.96" cy="421.2" rx="14.56" ry="8.96" fill="#C3D9F0"/>
+    <text x="80" y="396" font-size="44" fill="#FFFFFF">23.4°</text>
+    <text x="80" y="444" font-size="22" fill="#C3D9F0">多云</text>
+    <line x1="276" y1="372" x2="276" y2="448" stroke="#2E5A85" opacity="0.7"/>
+    <text x="292" y="398" font-size="22" fill="#8FB2D4">体感</text>
+    <text x="292" y="446" font-size="22" fill="#FFFFFF">25.1°C</text>
+    <text x="413" y="398" font-size="22" fill="#8FB2D4">湿度</text>
+    <text x="413" y="446" font-size="22" fill="#FFFFFF">62%</text>
+    <text x="534" y="398" font-size="22" fill="#8FB2D4">风速</text>
+    <text x="534" y="446" font-size="22" fill="#FFFFFF">3.2m/s</text>
+    <text x="655" y="398" font-size="22" fill="#8FB2D4">气压</text>
+    <text x="655" y="446" font-size="22" fill="#FFFFFF">1013hPa</text>
+    </g>
+  </g>
+  <g transform="translate(884,56)">
+    <rect width="800" height="480" rx="10" fill="url(#bg)" stroke="#2E5A85"/>
+    <text x="400" y="-18" font-size="20" fill="#C3D9F0" text-anchor="middle">② 看板（点屏幕出现 · 5 分钟没操作自动回大时钟 · 三天预报下方是降水概率条）</text>
+    <clipPath id="clip1"><rect width="800" height="480" rx="10"/></clipPath>
+    <g clip-path="url(#clip1)">
+    <text x="26" y="38" font-size="22" fill="#FFFFFF">宁波市 9月20日 周六</text>
+    <rect x="532" y="9" width="96" height="40" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="580" y="36.480000000000004" font-size="22" fill="#C3D9F0" text-anchor="middle">刷新天气</text>
+    <rect x="636" y="9" width="76" height="40" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="674" y="36.480000000000004" font-size="22" fill="#C3D9F0" text-anchor="middle">大时钟</text>
+    <rect x="720" y="9" width="64" height="40" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="752" y="36.480000000000004" font-size="22" fill="#C3D9F0" text-anchor="middle">设置</text>
+    <circle cx="259" cy="24" r="5" fill="#30D158"/>
+    <text x="524" y="38" font-size="22" fill="#30D158" text-anchor="end">已联网 · 更新 14:22</text>
+    <line x1="0" y1="56" x2="800" y2="56" stroke="#2E5A85" opacity="0.5"/>
+    <text x="271" y="232" font-size="193" fill="#FFFFFF" text-anchor="middle">08:42</text>
+    <rect x="80" y="262" width="300" height="10" rx="5" fill="#2A4C73"/>
+    <rect x="80" y="262" width="185" height="10" rx="5" fill="#0A84FF"/>
+    <text x="404" y="290" font-size="44" fill="#0A84FF">37</text>
+    <rect x="558" y="66" width="226" height="280" rx="22" fill="url(#card)" stroke="#2E5A85"/>
+    <circle cx="620" cy="95.88" r="19.76" fill="#FFD60A" opacity="0.9"/>
+    <ellipse cx="612.4" cy="121.72" rx="25.840000000000003" ry="15.200000000000001" fill="#E8F2FF"/>
+    <ellipse cx="632.16" cy="120.2" rx="19.76" ry="12.16" fill="#C3D9F0"/>
+    <text x="600" y="140" font-size="44" fill="#FFFFFF">23.4°</text>
+    <text x="574" y="180" font-size="32" fill="#C3D9F0">多云</text>
+    <line x1="574" y1="216" x2="768" y2="216" stroke="#2E5A85" opacity="0.7"/>
+    <text x="574" y="240" font-size="22" fill="#8FB2D4">体感</text>
+    <text x="768" y="240" font-size="22" fill="#FFFFFF" text-anchor="end">25.1°C</text>
+    <line x1="574" y1="249" x2="768" y2="249" stroke="#2E5A85" opacity="0.7"/>
+    <text x="574" y="270" font-size="22" fill="#8FB2D4">湿度</text>
+    <text x="768" y="270" font-size="22" fill="#FFFFFF" text-anchor="end">62%</text>
+    <line x1="574" y1="279" x2="768" y2="279" stroke="#2E5A85" opacity="0.7"/>
+    <text x="574" y="300" font-size="22" fill="#8FB2D4">风速</text>
+    <text x="768" y="300" font-size="22" fill="#FFFFFF" text-anchor="end">3.2m/s</text>
+    <line x1="574" y1="309" x2="768" y2="309" stroke="#2E5A85" opacity="0.7"/>
+    <text x="574" y="330" font-size="22" fill="#8FB2D4">气压</text>
+    <text x="768" y="330" font-size="22" fill="#FFFFFF" text-anchor="end">1013hPa</text>
+    <rect x="16" y="356" width="248" height="112" rx="20" fill="url(#card)" stroke="#2E5A85"/>
+    <text x="32" y="386" font-size="22" fill="#FFFFFF">今天</text>
+    <circle cx="226" cy="373.76" r="13.52" fill="#FFD60A" opacity="0.9"/>
+    <ellipse cx="220.8" cy="391.44" rx="17.68" ry="10.4" fill="#E8F2FF"/>
+    <ellipse cx="234.32" cy="390.4" rx="13.52" ry="8.32" fill="#C3D9F0"/>
+    <text x="32" y="428" font-size="32" fill="#FFFFFF">26°</text>
+    <text x="82" y="428" font-size="32" fill="#8FB2D4">/</text>
+    <text x="96" y="428" font-size="32" fill="#8FB2D4">18°</text>
+    <rect x="32" y="448" width="148" height="6" rx="3" fill="#2A4C73"/>
+    <text x="248" y="458" font-size="22" fill="#8FB2D4" text-anchor="end">0%</text>
+    <rect x="276" y="356" width="248" height="112" rx="20" fill="url(#card)" stroke="#2E5A85"/>
+    <text x="292" y="386" font-size="22" fill="#FFFFFF">明天</text>
+    <circle cx="486" cy="373.76" r="13.52" fill="#FFD60A" opacity="0.9"/>
+    <ellipse cx="480.8" cy="391.44" rx="17.68" ry="10.4" fill="#E8F2FF"/>
+    <ellipse cx="494.32" cy="390.4" rx="13.52" ry="8.32" fill="#C3D9F0"/>
+    <text x="292" y="428" font-size="32" fill="#FFFFFF">24°</text>
+    <text x="342" y="428" font-size="32" fill="#8FB2D4">/</text>
+    <text x="356" y="428" font-size="32" fill="#8FB2D4">17°</text>
+    <rect x="292" y="448" width="148" height="6" rx="3" fill="#2A4C73"/>
+    <rect x="292" y="448" width="81" height="6" rx="3" fill="#64D2FF"/>
+    <text x="508" y="458" font-size="22" fill="#64D2FF" text-anchor="end">55%</text>
+    <rect x="536" y="356" width="248" height="112" rx="20" fill="url(#card)" stroke="#2E5A85"/>
+    <text x="552" y="386" font-size="22" fill="#FFFFFF">后天</text>
+    <circle cx="746" cy="373.76" r="13.52" fill="#FFD60A" opacity="0.9"/>
+    <ellipse cx="740.8" cy="391.44" rx="17.68" ry="10.4" fill="#E8F2FF"/>
+    <ellipse cx="754.32" cy="390.4" rx="13.52" ry="8.32" fill="#C3D9F0"/>
+    <text x="552" y="428" font-size="32" fill="#FFFFFF">28°</text>
+    <text x="602" y="428" font-size="32" fill="#8FB2D4">/</text>
+    <text x="616" y="428" font-size="32" fill="#8FB2D4">19°</text>
+    <rect x="552" y="448" width="148" height="6" rx="3" fill="#2A4C73"/>
+    <rect x="552" y="448" width="126" height="6" rx="3" fill="#0A84FF"/>
+    <text x="768" y="458" font-size="22" fill="#0A84FF" text-anchor="end">85%</text>
+    </g>
+  </g>
+  <g transform="translate(1728,56)">
+    <rect width="800" height="480" rx="10" fill="url(#bg)" stroke="#2E5A85"/>
+    <text x="400" y="-18" font-size="20" fill="#C3D9F0" text-anchor="middle">③ 连接 WiFi（异步扫描 · 按信号排序 · 同名只留最强）</text>
+    <clipPath id="clip2"><rect width="800" height="480" rx="10"/></clipPath>
+    <g clip-path="url(#clip2)">
+    <rect x="24" y="14" width="100" height="44" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="74" y="45.52" font-size="28" fill="#C3D9F0" text-anchor="middle">返回</text>
+    <text x="148" y="46" font-size="28" fill="#FFFFFF">连接 WiFi</text>
+    <rect x="532" y="14" width="88" height="44" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="576" y="45.52" font-size="28" fill="#C3D9F0" text-anchor="middle">地区</text>
+    <rect x="628" y="14" width="148" height="44" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="702" y="45.52" font-size="28" fill="#64D2FF" text-anchor="middle">重新扫描</text>
+    <text x="24" y="102" font-size="22" fill="#8FB2D4">找到 6 个网络，点击即可连接</text>
+    <rect x="24" y="112" width="752" height="62" rx="12" fill="url(#card)" stroke="#30D158"/>
+    <rect x="42" y="145" width="4" height="5" rx="1" fill="#FFFFFF"/>
+    <rect x="48" y="142" width="4" height="8" rx="1" fill="#FFFFFF"/>
+    <rect x="54" y="139" width="4" height="11" rx="1" fill="#FFFFFF"/>
+    <rect x="60" y="136" width="4" height="14" rx="1" fill="#FFFFFF"/>
+    <text x="76" y="151" font-size="20" fill="#8FB2D4">加密</text>
+    <text x="132" y="151" font-size="28" fill="#FFFFFF">MyHome-2.4G</text>
+    <text x="756" y="151" font-size="20" fill="#30D158" text-anchor="end">已保存</text>
+    <rect x="24" y="182" width="752" height="62" rx="12" fill="url(#card)" stroke="#2E5A85"/>
+    <rect x="42" y="215" width="4" height="5" rx="1" fill="#FFFFFF"/>
+    <rect x="48" y="212" width="4" height="8" rx="1" fill="#FFFFFF"/>
+    <rect x="54" y="209" width="4" height="11" rx="1" fill="#FFFFFF"/>
+    <rect x="60" y="206" width="4" height="14" rx="1" fill="#2A4C73"/>
+    <text x="76" y="221" font-size="20" fill="#8FB2D4">加密</text>
+    <text x="132" y="221" font-size="28" fill="#FFFFFF">ChinaNet-8xKz</text>
+    <text x="756" y="221" font-size="28" fill="#8FB2D4" text-anchor="end">></text>
+    <rect x="24" y="252" width="752" height="62" rx="12" fill="url(#card)" stroke="#2E5A85"/>
+    <rect x="42" y="285" width="4" height="5" rx="1" fill="#FFFFFF"/>
+    <rect x="48" y="282" width="4" height="8" rx="1" fill="#FFFFFF"/>
+    <rect x="54" y="279" width="4" height="11" rx="1" fill="#2A4C73"/>
+    <rect x="60" y="276" width="4" height="14" rx="1" fill="#2A4C73"/>
+    <text x="76" y="291" font-size="20" fill="#8FB2D4">加密</text>
+    <text x="132" y="291" font-size="28" fill="#FFFFFF">TP-LINK_5F2C</text>
+    <text x="756" y="291" font-size="28" fill="#8FB2D4" text-anchor="end">></text>
+    <rect x="24" y="322" width="752" height="62" rx="12" fill="url(#card)" stroke="#2E5A85"/>
+    <rect x="42" y="355" width="4" height="5" rx="1" fill="#FFFFFF"/>
+    <rect x="48" y="352" width="4" height="8" rx="1" fill="#FFFFFF"/>
+    <rect x="54" y="349" width="4" height="11" rx="1" fill="#FFFFFF"/>
+    <rect x="60" y="346" width="4" height="14" rx="1" fill="#FFFFFF"/>
+    <text x="132" y="361" font-size="28" fill="#FFFFFF">Guest-WiFi</text>
+    <text x="756" y="361" font-size="28" fill="#8FB2D4" text-anchor="end">></text>
+    <rect x="24" y="392" width="752" height="62" rx="12" fill="url(#card)" stroke="#2E5A85"/>
+    <rect x="42" y="425" width="4" height="5" rx="1" fill="#FFFFFF"/>
+    <rect x="48" y="422" width="4" height="8" rx="1" fill="#FFFFFF"/>
+    <rect x="54" y="419" width="4" height="11" rx="1" fill="#2A4C73"/>
+    <rect x="60" y="416" width="4" height="14" rx="1" fill="#2A4C73"/>
+    <text x="76" y="431" font-size="20" fill="#8FB2D4">加密</text>
+    <text x="132" y="431" font-size="28" fill="#FFFFFF">Xiaomi_AX3000</text>
+    <text x="756" y="431" font-size="28" fill="#8FB2D4" text-anchor="end">></text>
+    <rect x="24" y="462" width="752" height="62" rx="12" fill="none" stroke="#2E5A85"/>
+    <text x="44" y="501" font-size="28" fill="#64D2FF">+</text>
+    <text x="82" y="501" font-size="22" fill="#C3D9F0">手动输入网络名（隐藏的 WiFi）</text>
+    </g>
+  </g>
+  <g transform="translate(2572,56)">
+    <rect width="800" height="480" rx="10" fill="url(#bg)" stroke="#2E5A85"/>
+    <text x="400" y="-18" font-size="20" fill="#C3D9F0" text-anchor="middle">④ 输入密码（LVGL 软键盘 · 可显示 / 隐藏 · 失败能重试）</text>
+    <clipPath id="clip3"><rect width="800" height="480" rx="10"/></clipPath>
+    <g clip-path="url(#clip3)">
+    <rect x="24" y="14" width="100" height="44" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="74" y="45.52" font-size="28" fill="#C3D9F0" text-anchor="middle">返回</text>
+    <text x="148" y="46" font-size="28" fill="#FFFFFF">输入密码</text>
+    <rect x="676" y="14" width="100" height="44" rx="12" fill="#0A84FF" stroke="#64D2FF"/>
+    <text x="726" y="45.52" font-size="28" fill="#FFFFFF" text-anchor="middle">连接</text>
+    <text x="24" y="114" font-size="22" fill="#8FB2D4">网络</text>
+    <text x="110" y="114" font-size="28" fill="#FFFFFF">MyHome-2.4G</text>
+    <text x="24" y="176" font-size="22" fill="#8FB2D4">密码</text>
+    <rect x="110" y="148" width="460" height="50" rx="10" fill="#143050" stroke="#0A84FF"/>
+    <text x="128" y="181" font-size="28" fill="#FFFFFF">••••••••</text>
+    <rect x="584" y="148" width="92" height="50" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="630" y="182.52" font-size="28" fill="#C3D9F0" text-anchor="middle">显示</text>
+    <text x="24" y="228" font-size="22" fill="#8FB2D4">密码区分大小写</text>
+    <rect x="26.0" y="246.0" width="69.4" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="60.7" y="278.8" font-size="22" fill="#FFFFFF" text-anchor="middle">q</text>
+    <rect x="101.4" y="246.0" width="69.4" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="136.1" y="278.8" font-size="22" fill="#FFFFFF" text-anchor="middle">w</text>
+    <rect x="176.8" y="246.0" width="69.4" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="211.5" y="278.8" font-size="22" fill="#FFFFFF" text-anchor="middle">e</text>
+    <rect x="252.2" y="246.0" width="69.4" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="286.9" y="278.8" font-size="22" fill="#FFFFFF" text-anchor="middle">r</text>
+    <rect x="327.6" y="246.0" width="69.4" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="362.3" y="278.8" font-size="22" fill="#FFFFFF" text-anchor="middle">t</text>
+    <rect x="403.0" y="246.0" width="69.4" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="437.7" y="278.8" font-size="22" fill="#FFFFFF" text-anchor="middle">y</text>
+    <rect x="478.4" y="246.0" width="69.4" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="513.1" y="278.8" font-size="22" fill="#FFFFFF" text-anchor="middle">u</text>
+    <rect x="553.8" y="246.0" width="69.4" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="588.5" y="278.8" font-size="22" fill="#FFFFFF" text-anchor="middle">i</text>
+    <rect x="629.2" y="246.0" width="69.4" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="663.9" y="278.8" font-size="22" fill="#FFFFFF" text-anchor="middle">o</text>
+    <rect x="704.6" y="246.0" width="69.4" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="739.3" y="278.8" font-size="22" fill="#FFFFFF" text-anchor="middle">p</text>
+    <rect x="26.0" y="301.5" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="64.9" y="334.3" font-size="22" fill="#FFFFFF" text-anchor="middle">a</text>
+    <rect x="109.8" y="301.5" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="148.7" y="334.3" font-size="22" fill="#FFFFFF" text-anchor="middle">s</text>
+    <rect x="193.6" y="301.5" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="232.4" y="334.3" font-size="22" fill="#FFFFFF" text-anchor="middle">d</text>
+    <rect x="277.3" y="301.5" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="316.2" y="334.3" font-size="22" fill="#FFFFFF" text-anchor="middle">f</text>
+    <rect x="361.1" y="301.5" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="400.0" y="334.3" font-size="22" fill="#FFFFFF" text-anchor="middle">g</text>
+    <rect x="444.9" y="301.5" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="483.8" y="334.3" font-size="22" fill="#FFFFFF" text-anchor="middle">h</text>
+    <rect x="528.7" y="301.5" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="567.6" y="334.3" font-size="22" fill="#FFFFFF" text-anchor="middle">j</text>
+    <rect x="612.4" y="301.5" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="651.3" y="334.3" font-size="22" fill="#FFFFFF" text-anchor="middle">k</text>
+    <rect x="696.2" y="301.5" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="735.1" y="334.3" font-size="22" fill="#FFFFFF" text-anchor="middle">l</text>
+    <rect x="26.0" y="357.0" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="64.9" y="389.8" font-size="22" fill="#FFFFFF" text-anchor="middle">⇧</text>
+    <rect x="109.8" y="357.0" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="148.7" y="389.8" font-size="22" fill="#FFFFFF" text-anchor="middle">z</text>
+    <rect x="193.6" y="357.0" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="232.4" y="389.8" font-size="22" fill="#FFFFFF" text-anchor="middle">x</text>
+    <rect x="277.3" y="357.0" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="316.2" y="389.8" font-size="22" fill="#FFFFFF" text-anchor="middle">c</text>
+    <rect x="361.1" y="357.0" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="400.0" y="389.8" font-size="22" fill="#FFFFFF" text-anchor="middle">v</text>
+    <rect x="444.9" y="357.0" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="483.8" y="389.8" font-size="22" fill="#FFFFFF" text-anchor="middle">b</text>
+    <rect x="528.7" y="357.0" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="567.6" y="389.8" font-size="22" fill="#FFFFFF" text-anchor="middle">n</text>
+    <rect x="612.4" y="357.0" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="651.3" y="389.8" font-size="22" fill="#FFFFFF" text-anchor="middle">m</text>
+    <rect x="696.2" y="357.0" width="77.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="735.1" y="389.8" font-size="22" fill="#FFFFFF" text-anchor="middle">⌫</text>
+    <rect x="26.0" y="412.5" width="144.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="98.4" y="445.3" font-size="22" fill="#FFFFFF" text-anchor="middle">1#</text>
+    <rect x="176.8" y="412.5" width="144.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="249.2" y="445.3" font-size="22" fill="#FFFFFF" text-anchor="middle">,</text>
+    <rect x="327.6" y="412.5" width="144.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="400.0" y="445.3" font-size="22" fill="#FFFFFF" text-anchor="middle">空格</text>
+    <rect x="478.4" y="412.5" width="144.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="550.8" y="445.3" font-size="22" fill="#FFFFFF" text-anchor="middle">.</text>
+    <rect x="629.2" y="412.5" width="144.8" height="49.5" rx="8" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="701.6" y="445.3" font-size="22" fill="#FFFFFF" text-anchor="middle">✓</text>
+    </g>
+  </g>
+  <g transform="translate(3416,56)">
+    <rect width="800" height="480" rx="10" fill="url(#bg)" stroke="#2E5A85"/>
+    <text x="400" y="-18" font-size="20" fill="#C3D9F0" text-anchor="middle">⑤ 选择地区（左省右市 · 坐标跟着走）</text>
+    <clipPath id="clip4"><rect width="800" height="480" rx="10"/></clipPath>
+    <g clip-path="url(#clip4)">
+    <rect x="24" y="14" width="100" height="44" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="74" y="45.52" font-size="28" fill="#C3D9F0" text-anchor="middle">返回</text>
+    <text x="148" y="46" font-size="28" fill="#FFFFFF">选择地区</text>
+    <rect x="676" y="14" width="100" height="44" rx="12" fill="#0A84FF" stroke="#64D2FF"/>
+    <text x="726" y="45.52" font-size="28" fill="#FFFFFF" text-anchor="middle">完成</text>
+    <text x="24" y="102" font-size="22" fill="#8FB2D4">已选：浙江省 · 宁波市</text>
+    <rect x="24" y="116" width="250" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="38" y="147" font-size="26" fill="#C3D9F0">北京市</text>
+    <rect x="24" y="168" width="250" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="38" y="199" font-size="26" fill="#C3D9F0">天津市</text>
+    <rect x="24" y="220" width="250" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="38" y="251" font-size="26" fill="#C3D9F0">河北省</text>
+    <rect x="24" y="272" width="250" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="38" y="303" font-size="26" fill="#C3D9F0">山西省</text>
+    <rect x="24" y="324" width="250" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="38" y="355" font-size="26" fill="#C3D9F0">内蒙古自治区</text>
+    <rect x="24" y="376" width="250" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="38" y="407" font-size="26" fill="#C3D9F0">辽宁省</text>
+    <rect x="24" y="428" width="250" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="38" y="459" font-size="26" fill="#C3D9F0">吉林省</text>
+    <rect x="24" y="480" width="250" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="38" y="511" font-size="26" fill="#C3D9F0">黑龙江省</text>
+    <rect x="24" y="532" width="250" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="38" y="563" font-size="26" fill="#C3D9F0">上海市</text>
+    <rect x="24" y="584" width="250" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="38" y="615" font-size="26" fill="#C3D9F0">江苏省</text>
+    <rect x="24" y="636" width="250" height="46" rx="12" fill="#0A84FF" stroke="#64D2FF"/>
+    <text x="38" y="667" font-size="26" fill="#FFFFFF">浙江省</text>
+    <rect x="24" y="688" width="250" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="38" y="719" font-size="26" fill="#C3D9F0">安徽省</text>
+    <rect x="24" y="740" width="250" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="38" y="771" font-size="26" fill="#C3D9F0">福建省</text>
+    <rect x="290" y="116" width="486" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="304" y="147" font-size="26" fill="#C3D9F0">杭州市</text>
+    <rect x="290" y="168" width="486" height="46" rx="12" fill="#0A84FF" stroke="#64D2FF"/>
+    <text x="304" y="199" font-size="26" fill="#FFFFFF">宁波市</text>
+    <rect x="290" y="220" width="486" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="304" y="251" font-size="26" fill="#C3D9F0">温州市</text>
+    <rect x="290" y="272" width="486" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="304" y="303" font-size="26" fill="#C3D9F0">嘉兴市</text>
+    <rect x="290" y="324" width="486" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="304" y="355" font-size="26" fill="#C3D9F0">湖州市</text>
+    <rect x="290" y="376" width="486" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="304" y="407" font-size="26" fill="#C3D9F0">绍兴市</text>
+    <rect x="290" y="428" width="486" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="304" y="459" font-size="26" fill="#C3D9F0">金华市</text>
+    <rect x="290" y="480" width="486" height="46" rx="12" fill="#1C3E63" stroke="#2E5A85"/>
+    <text x="304" y="511" font-size="26" fill="#C3D9F0">衢州市</text>
+    </g>
+  </g>
+</svg>

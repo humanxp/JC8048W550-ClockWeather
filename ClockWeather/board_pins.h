@@ -106,6 +106,36 @@
 #define LCD_PREFER_SPEED        16000000
 #define LCD_BOUNCE_BUFFER_PX    (LCD_WIDTH * 10)   /* 10 行，共约 32KB 内部 RAM */
 
+/* ---------------------- RGB DMA 自愈（防止永久花屏）------------------
+ * 现象：跑一段时间后随机出现局部花屏 / 拉丝，而且**一直不复原**，
+ *       只有按 RST 重启才好，重启后过一阵又会出现。
+ *
+ * 原因：ESP32-S3 的 RGB GDMA 会「永久失步」(permanent desync)。
+ *       ESP-IDF 源码里的原文：
+ *         "reset the GDMA channel every VBlank to stop permanent desyncs
+ *          from happening."
+ *       官方的开关是 CONFIG_LCD_RGB_RESTART_IN_VSYNC，但那是编译期选项，
+ *       Arduino 用的 ESP-IDF 是预编译好的，改不了。
+ *
+ * 对策：改成运行时定期调用 esp_lcd_rgb_panel_restart()。
+ *       这个函数只设一个标志，真正的 DMA 复位在下一个 VSYNC 中断里做，
+ *       所以不会打断正在输出的这一帧。失步后最多 LCD_DMA_RESTART_INTERVAL_MS
+ *       就会自愈，不用再重启板子。
+ *
+ * ⚠ 启用前必须先给 Arduino_GFX 打一行补丁，把 panel 句柄从 private 放开：
+ *      文件： libraries/GFX_Library_for_Arduino/src/databus/Arduino_ESP32RGBPanel.h
+ *      找到： private:            （大约第 125 行，_panel_handle 所在区段）
+ *      改成： public:
+ *   没打补丁会编译报错「'_panel_handle' is private within this context」。
+ *   详细步骤见 README 第十节的「让花屏自愈」。
+ *
+ * 间隔：太长则花屏要等很久才恢复；太短则可能周期性看到轻微撕裂。
+ *       5000ms 是折中值。真机上如果发现每 5 秒有一次可察觉的闪动，
+ *       把这个值调大到 15000 或 30000。
+ * ------------------------------------------------------------------ */
+#define LCD_DMA_RESTART_FIX             1
+#define LCD_DMA_RESTART_INTERVAL_MS     5000
+
 /* ---------------------------- GT911 电容触摸 -------------------------
  * I2C 挂在 GPIO19(SDA) / GPIO20(SCL)，复位 GPIO38，中断 GPIO18。
  * I2C 地址由复位时 INT 电平决定：INT 拉低 -> 0x5D，拉高 -> 0x14。

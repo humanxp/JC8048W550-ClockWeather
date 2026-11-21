@@ -1,0 +1,405 @@
+# 验证记录
+# 环境: arduino-cli + esp32:esp32@3.3.11 + lvgl@8.4.0 + GFX Library for Arduino@1.6.8
+# FQBN: esp32:esp32:esp32s3:PSRAM=opi,FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,CDCOnBoot=default,FlashMode=qio
+# 警告级别: --warnings more
+#
+## 编译验证（三个 sketch 全部 0 error / 0 warning）
+# 数字为最近一次重编译实测（arduino-cli + esp32:esp32@3.3.11 +
+#   lvgl@8.4.0 + GFX Library for Arduino@1.6.8，FQBN 见 tools/build.sh）
+# ClockWeather        1908322 字节 (60%)   静态 RAM  99636 字节 (30%)
+# ClockWeatherSetup   1959390 字节 (62%)   静态 RAM 167044 字节 (50%)
+# ScreenTest           359072 字节 (11%)   静态 RAM  24112 字节  (7%)
+#
+## 真机验证（JC8048W550 实板）
+#   屏幕点亮/颜色/时序 ...... 正常
+#   GT911 触摸 .............. 0x5D，坐标正确
+#   时钟/秒数/秒进度条 ...... 正常
+#   天气拉取与显示 .......... 正常
+#   三天预报+温度区间条 ..... 正常
+#   WiFi 连接/断线重连 ...... 正常
+#   NTP 授时 ................ 正常
+#   设置向导（扫WiFi/密码/选省市） 正常
+#
+## 开发过程中在真机上踩过并修掉的坑
+#   1. PSRAM 必须设 OPI，否则 750KB 帧缓冲分配失败 -> 崩溃重启 + 全黑
+#   2. PCLK 不能降到 12MHz（刷新率 29Hz 低于面板要求 -> 白屏），保持 16MHz
+#   3. 画面横向抖动 -> 启用 DMA 搬运缓冲 bounce_buffer_size_px
+#   4. LVGL v8 的 lv_label_set_text 无条件 invalidate -> 内容不变也重绘
+#      （每 200ms 调一次 = 大钟每秒重绘 5 次 = 时间区域一直闪）
+#   5. direct_mode 下 LVGL 绕过 Arduino_GFX 的 _dirty()，
+#      CPU 写的像素没写回 PSRAM -> RGB DMA 读到旧数据 -> 花屏拉丝
+#   6. url_encode 的数组名不能叫 HEX（Arduino Print.h 有 #define HEX 16）
+#   7. 地理编码接口对原始中文返回 403，必须做 URL 百分号编码
+#   8. 数字字库漏了空格 -> 预报 '18° / 26°' 变成 '18°/26°'
+
+## 2025 追加：随机花屏（永久失步）修复
+# 现象：跑一段时间后随机局部花屏/拉丝，一直不复原，只有重启才好
+# 原因：ESP32-S3 RGB GDMA permanent desync
+#       ESP-IDF 原文 "reset the GDMA channel every VBlank to stop permanent desyncs"
+#       官方开关 CONFIG_LCD_RGB_RESTART_IN_VSYNC 是编译期的，Arduino 改不了
+# 对策：运行时定期调 esp_lcd_rgb_panel_restart()
+#       需要给 Arduino_GFX 打一行补丁（private: -> public:，放开 _panel_handle）
+#
+# 编译验证（已打补丁）：
+#   Sketch uses 1908322 bytes (60%)
+#   error 0 / warning 0
+# 反向验证（不打补丁）：
+#   error: 'esp_lcd_panel_t* Arduino_ESP32RGBPanel::_panel_handle' is private within this context
+
+## 追加：ClockWeatherSetup 重建（满屏大时钟 + 点屏看天气 + 5 分钟回大钟）
+# 新增/重写：
+#   settings.cpp      WiFi + 地区 存 NVS（Preferences），带 revision 计数
+#   setup_ui.cpp      设置向导三页：扫 WiFi / 输密码（软键盘）/ 选省市
+#   region_data.cpp   gen_regions.js 自动生成（34 省 / 389 市 + 坐标）
+#   ui.cpp            两张主屏：满屏大时钟（最下面一条当前详细天气）/
+#                     时间+天气看板，5 分钟自动回大钟
+#   net_time.cpp      增加异步扫描 + net_connect_to()/net_adopt_current()
+#   weather.cpp       坐标改从 settings 读，删掉地理编码那一整段
+# 新增字库：
+#   font_clock_290    满屏大时钟，2.685 × 290 ≈ 779px < 800px（一屏能放下的最大字号）
+#   font_cjk_28       向导用字 267 个，由 extract_ui_chars.js 从源码自动提取
+# 新增：touch_gt911.cpp 的 TouchDiag 诊断（地址/按下次数/最近坐标/I2C 失败数）
+#       + 向导顶栏调试行（config.h 的 UI_SHOW_TOUCH_DEBUG）
+#       + 列表行与顶栏按钮的「按下变蓝」反馈
+#       用途：排查「能扫到 WiFi 但点屏幕没反应」
+# lv_conf.h：打开 LV_USE_KEYBOARD / LV_USE_TEXTAREA / LV_USE_BTNMATRIX，
+#            默认字体改 montserrat_24，LV_MEM_SIZE 48KB -> 80KB
+# 编译（全新 .build 全量编译，--warnings more）：
+#   Sketch 2030314 字节 (64%) / 静态 RAM 134444 字节 (41%) / error 0 / warning 0
+# ⚠ 新增的向导与主屏切换逻辑只做了编译级验证，尚未上实板；
+#   屏幕/触摸/WiFi/NTP/天气/字体渲染沿用 ClockWeather 已实板验证的驱动。
+
+## 追加：GT911 触摸点寄存器基准修正（实板反馈 + 参考实现核对）
+# 现象（用户实板）：ClockWeatherSetup 能扫到 WiFi、向导顶栏「按下次数」在涨，
+#   但坐标永远是 799,479，点列表毫无反应。
+# 原因：GT911_REG_POINT1 写成 0x8150，而 GT911 的触摸点记录是从 0x814F 开始的：
+#       0x814F        track id
+#       0x8150~0x8151 X（小端）
+#       0x8152~0x8153 Y（小端）
+#       0x8154~0x8155 触摸面积
+#       0x8156        保留
+#   代码用 p[1..2] 当 X、p[3..4] 当 Y，基准错一字节 =>
+#       X = X高字节 | (Y低字节<<8)      （几千）
+#       Y = Y高字节 | (面积低字节<<8)   （几千）
+#   再乘屏幕尺寸就被 clamp 到右下角，所以每次都报 799,479。
+# 核对（两个参考实现的记录起点都是 0x814F）：
+#   esp-bsp  esp_lcd_touch_gt911.c : 读 0x814E+1；x = buf[3]<<8|buf[2]
+#   LovyanGFX Touch_GT911.cpp      : data 指向 0x814F；x = data[1]
+# 修正：GT911_REG_POINT1  0x8150 -> 0x814F
+#       两份驱动都改了（ClockWeatherSetup + ClockWeather）。
+# 重编：ClockWeatherSetup 2030314 字节 (64%) / RAM 134444 (41%)
+#       ClockWeather      1908322 字节 (60%) / RAM  99636 (30%)
+#       error 0 / warning 0
+
+## 追加：实板反馈三个问题（键盘/滚动闪 + 地名方框）
+# ① 大面积重绘闪（软键盘、省份列表滚动）
+#    原因：原实现是 direct_mode —— LVGL 直接画进 PSRAM 帧缓冲，而 RGB DMA
+#          正在扫同一块内存（一边画一边显示 => 撕裂）；而且每次刷新都整屏
+#          写回 750KB，和 DMA 抢 PSRAM 带宽。
+#          ClockWeather 只刷时钟数字，所以当初没问题；这一版有交互就暴露了。
+#    修正：改成分块渲染（board_pins.h 新增 LCD_DIRECT_RENDER，默认 0）：
+#          LVGL 先在内部 RAM 的 64KB(800x40) 小块里画，再 memcpy 进帧缓冲，
+#          并且只逐行写回这一块（不再整屏写回）。内部 RAM 不足会自动回退。
+# ② 点选地区时闪
+#    原因：每次点省份/城市都 lv_obj_clean 重建整列（34 省 + 最多 24 市），
+#          一次重建就是一次全屏级重绘。
+#    修正：保存行指针，选中只改那两行的样式；换省时才重建城市列，
+#          点城市完全不重建。
+# ③ 省份名显示方框
+#    原因：地区列表用 font_cjk_28，而 28px 字库是按「源码字符串字面量」裁的
+#          （extract_ui_chars.js 扫 setup_ui.cpp 等），省份/城市名在
+#          region_data.cpp 里属于「数据」，437 个地名用字有 405 个不在字库里。
+#    修正：界面上显示用户数据的地方（地区名、WiFi SSID）统一改用 22px 全字库
+#          font_cjk_22（含全部地名，已逐字校验 0 缺字）；28px 只用于固定文案。
+#          并把 font_cjk_22 按当前 charset.txt（含 437 个地名补充字）重新生成。
+#    约定写进 tools/extract_ui_chars.js 注释：不要把 region_data.cpp 加进 28px
+#          字库（会白多花一百多 KB，且长省名在 28px 下也放不下）。
+# 重编：ClockWeatherSetup 1959238 字节 (64%) / RAM 166996 (51%) / error 0 / warning 0
+
+## 追加：大时钟页面点屏幕没反应 / 时钟像卡住（实板反馈）
+# 原因：天气是主循环里同步拉的。weather_fetch() 的 DNS + HTTPS 全是阻塞调用，
+#       网络慢/不通时一次十几秒、重试三次大半分钟；这段时间主循环停转，
+#       LVGL 不刷新、触摸不响应。
+#       关键：设置向导开着时本来就跳过天气（!setup_ui_active()），所以向导很跟手；
+#       一旦配置完切到大时钟，天气开始拉，界面立刻卡住 —— 与现象完全吻合。
+#       这个坑在 ClockWeather（只读看板、无可点控件）里永远暴露不出来。
+# 修正：天气改成后台 FreeRTOS 任务（xTaskCreatePinnedToCore，栈 16KB，core 0），
+#       互斥量保护结果传递；主循环只负责启动任务 + 取结果，
+#       LVGL 只在主循环里被调用，拉取期间界面照常响应触摸。
+#       顺带在「大时钟被点」「切回大钟」两处加了串口日志，便于判断
+#       点击事件到底有没有送到。
+# 覆盖：ClockWeatherSetup.ino（后台任务）+ ui.cpp（切换日志）
+# 重编：ClockWeatherSetup 1959238 字节 (64%) / RAM 166996 (51%) / error 0 / warning 0
+
+## 追加：天气连不上 + 大时钟加「刷新天气」按钮
+# 背景：实板报「天气接口连不上（HTTP -1）」。
+# 改动：
+#  1) 域名可配：config.h 新增 WEATHER_HOST（默认 api.open-meteo.com），
+#     国内连不上时可以换成能访问的镜像，解析代码不用动。
+#  2) 错误信息可读：原来只有 HTTP -1，现在用 http.errorToString() 翻译，
+#     并且错误原文会显示在大时钟/看板右上角（红色）。
+#  3) 后台重试：weather_task() 里失败自动重试 3 次（间隔 0.8s）。
+#     因为是后台任务，重试不再影响界面。
+#  4) 内存：TLS 握手要连续内部 RAM。arduino-esp32 3.x 的 WiFiClientSecure
+#     没有 setBufferSizes（缓冲大小是 IDF 编译期定死的），所以从两头省：
+#       · display.cpp 的 LCD_DRAW_BUF_LINES 40 -> 24（省 25.6KB）
+#       · client.setHandshakeTimeout(8000) 卡住尽快失败重试
+#  5) 大时钟左上角新增「刷新天气」按钮（点一下立刻重拉，拉取中显示「刷新中…」）；
+#     右上角新增状态文字，和看板共用同一份状态（出错原因直接显示出来）。
+#     ui.h 新增 ui_take_weather_refresh_request() / ui_set_weather_refreshing()。
+# 重编：ClockWeatherSetup 1959238 字节 (64%) / RAM 166996 (51%) / error 0 / warning 0
+
+## 追加：「操作几下再回大时钟就卡死」——LVGL 内存池不够
+# 原因：LV_MEM_SIZE 只有 80KB，而两张主屏 + 向导三页 + WiFi 列表 + 软键盘
+#       + 34 省/城市列表全在这个池子里。来回操作几次池子耗尽，
+#       lv_obj_create() 返回 NULL -> 控件缺失/跑飞/卡死。
+# 修正：
+#   1) lv_conf.h      LV_MEM_SIZE 80KB -> 112KB
+#   2) setup_ui.cpp   WiFi 列表每行 4 根信号柱 -> 1 根（每行少 3 个控件）
+#   3) net_time.h     NET_SCAN_MAX 24 -> 16
+#   4) 诊断：ui_log_mem() 在每次切屏打印 LVGL 用量；
+#      主循环每 10 秒打一行 [心跳]（空闲堆/最大连续堆/LVGL 用量/天气状态）；
+#      weather_task 退出前打印任务栈剩余（判断 16KB 栈够不够）。
+# 重编：ClockWeatherSetup 1959238 字节 (64%) / 静态 RAM 166996 字节 (51%) / error 0 / warning 0
+
+## 追加：「刷新天气」按钮从大时钟页挪到看板（第二页）顶栏
+# 需求：大时钟页保持干净（只有时间/日期/底部天气），刷新按钮放第二页。
+# 改动：
+#   ui.cpp  create_idle_screen() 删掉刷新按钮（右上角状态文字保留）；
+#           create_dashboard_screen() 顶栏改成三个按钮：
+#           从右往左 设置(84) / 大时钟(84) / 刷新天气(112)；
+#           城市日期宽度 274 -> 200，状态行右移对齐（-204 -> -326，文字宽 226 -> 200）。
+#           make_top_button() 增加宽度参数。
+#           s_idle_refresh_lbl -> s_refresh_btn（改取按钮的第一个子标签设文字）。
+#   gen_preview.js  效果图同步（按钮从第①屏移到第②屏）。
+# 重编：ClockWeatherSetup 1959238 字节 (64%) / RAM 166996 (51%) / error 0 / warning 0
+
+## 追加：天气自动回退明文 HTTP + 顶栏排版修正
+# 1) 天气：先 HTTPS，失败自动改用 http://同一域名（80 端口）。
+#    实测 api.open-meteo.com 的 80 端口直接返回 200（不跳转），
+#    明文不走 mbedTLS —— 没有「连续内存」这个坑，国内网络对 80 也更宽松。
+#    weather.cpp 拆出 http_get(path, use_tls, body, err)，FETCH 里两级尝试；
+#    串口会打印走的是哪条路。
+# 2) 看板顶栏排版：加了第三个按钮后挤了 ——
+#    · 城市日期框 200 -> 220，日期格式「星期X」->「周X」（文字 237 -> 215px），
+#      修掉「星期日」被折到第二行
+#    · 状态文字框 200 -> 240（右边缘不变，等于向左多让出 ~40px）
+#    · 按钮改窄：设置68 / 大时钟80 / 刷新天气100，间距统一 8px
+#    · 大时钟页状态文字 420 -> 600（那页没按钮，能给多宽给多宽）
+# 重编：ClockWeatherSetup 1959238 字节 (64%) / RAM 166996 (51%) / error 0 / warning 0
+
+## 追加：城市日期折行 —— 用字体实测宽度 + 锁定单行高
+# 现象：看板顶栏「宁波市 9月20日」的「周六/日」掉到第二行（用户反馈双位月份更宽）。
+# 实测（从 font_cjk_22.c 的 adv_w 求和，不是估算）：
+#   宁波市 · 9月20日 周六        = 227px   （上一轮只给了 220px -> 折行）
+#   宁波市 · 12月28日 周六        = 240px   （双位月日更宽）
+#   宁波市 9月20日 周六（无 ·）    = 200px
+#   宁波市 12月28日 周六（无 ·）   = 213px
+#   「·」在 font_cjk_22 里是全角 22px，去掉能省 ~27px。
+# 根因 2：LVGL 的 LV_LABEL_LONG_DOT 只在「高度被限死」时才打点；
+#   高度自适应时直接换行（lv_label.c 里 size.y <= area_height 就 dot_end=INV）。
+# 修正：
+#   · 日期格式「星期六」->「周六」（上一轮），城市与日期之间去掉「·」
+#   · 城市日期框：lv_obj_set_size(220, lv_font_get_line_height()) —— 锁死一行
+#   · 状态文字也锁一行高；宽度 240 -> 252
+#   · 按钮再收窄：设置64 / 大时钟76 / 刷新天气96（间距 8）
+# 重编：ClockWeatherSetup 1959238 字节 (64%) / RAM 166996 (51%) / error 0 / warning 0
+
+## 追加：加复位原因诊断（排查「花屏 + 重启」）
+# 花屏重启有两种完全不同的原因，必须在开机第一行就区分开：
+#   PANIC/WDT   -> 程序崩了（内存不够 / 栈溢出），看 Guru Meditation backtrace
+#   BROWNOUT    -> 供电不足（USB 线/口太弱，WiFi 发射瞬间掉压）
+# 改动：
+#   · ClockWeatherSetup.ino 新增 reset_reason_text()，开机打印 esp_reset_reason()
+#   · 心跳日志加「主循环栈剩」（uxTaskGetStackHighWaterMark）——
+#     LVGL 画 290px 大字体挺吃主循环的栈；低于 1500 字节就该查
+#   · display.cpp 分块渲染缓冲 24 -> 16 行（38.4 -> 25.6KB，省 12.8KB 内部 RAM，
+#     给 WiFi/TLS 和主循环让余量）
+# 重编：ClockWeatherSetup 1959238 字节 (64%) / RAM 166996 (51%) / error 0 / warning 0
+
+## 追加：实板日志定位天气失败 —— 默认改走明文 HTTP
+# 用户提供的实板日志：
+#   [心跳] 空闲堆 49432  最大连续堆 25588  LVGL 已用 57996/114688  碎片 2%
+#   [网络] 开始扫描附近的 WiFi…  -> 扫描完成
+#   [天气] ... 空闲堆 32344  最大连续堆 8180 -> HTTP -1 (connection refused)
+# 结论：
+#   · LVGL 很富裕（58/112KB，碎片 2%）-> 之前的「内存池不够」不是这里的锅
+#   · 真正的问题：最大连续堆只有 8~25KB，而 TLS 握手要 16KB+ 连续内存
+#     （扫描 WiFi 时更紧）-> 永远握不上
+# 修正：
+#   · config.h 新增 WEATHER_TRY_TLS_FIRST，默认 0：直接走明文 HTTP（80 端口），
+#     不碰 mbedTLS，只要几 KB 内存。设 1 则先试 HTTPS（连续堆 < 20KB 自动跳过）
+#   · 默认走明文后 WiFiClientSecure 分支成为死代码，链接器丢掉 mbedTLS：
+#     Flash 2034066 -> 1959238（-89KB）
+#   · net_time 新增只读的 net_scan_busy()；主循环在扫描 WiFi 期间不拉天气
+#     （扫描就是把内存吃到 8KB 的元凶）
+# 重编：ClockWeatherSetup 1959238 字节 (61%) / RAM 166996 (50%) / error 0 / warning 0
+
+## 追加：修复「天气拉取成功后崩溃重启」（实板 backtrace 定位）
+# 实板日志：
+#   [天气] 拉取成功: 27.9°C 毛毛雨
+#   assert failed: pbuf_free ... (pbuf_free: p->ref > 0)   -> Rebooting...
+# 定位：http_get() 里 HTTPClient http; 被声明在 WiFiClientSecure client; 之前。
+#   C++ 析构顺序与声明顺序相反 -> client 先析构，~HTTPClient() 又对已销毁对象
+#   调 _client->stop()（见 HTTPClient.cpp:89-92）-> use-after-free ->
+#   lwIP pbuf 双重释放。
+#   为什么 end() 没挡住：disconnect() 只在 connected() 为真时才置空 _client；
+#   服务器发完就断连时常为假，_client 一直留着。
+# 修正：client 声明在前、HTTPClient 在后（TLS 与明文两个分支都改）。
+#   原版 ClockWeather 顺序本来就是对的，是重构 http_get 时挪错了。
+# 重编：ClockWeatherSetup 1959238 字节 (61%) / RAM 166996 (50%) / error 0 / warning 0
+
+## 追加：加固件版本标记（区分「改了代码」和「烧进去了」）
+# 现象：用户连报两次相同崩溃，两次日志里的 ELF file SHA256 都是 2adbdde10
+#       -> 板子上跑的还是同一个旧固件，析构修复没进板子。
+# 改动：config.h 新增 FIRMWARE_TAG，setup() 开机打印；
+#       以后「串口里这行没变」就说明烧的不是新固件，不用再猜。
+# 重编：ClockWeatherSetup 1959238 字节 (61%) / RAM 166996 (50%) / error 0 / warning 0
+
+## 追加：抑制「左侧偶尔轻微拉丝」（DMA underrun）
+# 现象（实板）：偶尔屏幕左边有很轻微的拉丝，断电重启后消失。
+# 判断：这是 PSRAM 带宽竞争导致的 DMA underrun（行首重复上一行像素），
+#       不是 GDMA 永久失步 —— 所以 esp_lcd_rgb_panel_restart() 那套自愈无效。
+# 改动：
+#   · board_pins.h  LCD_BOUNCE_BUFFER_PX  10 行(32KB) -> 16 行(51.2KB)
+#     （480/16=30 整除 ✓，满足 IDF 的「帧缓冲 % 搬运缓冲 == 0」约束）
+#   · lv_conf.h     LV_DISP_DEF_REFR_PERIOD 16ms -> 25ms
+#     （面板 16MHz PCLK ≈ 39Hz ≈ 26ms/帧，原来 60fps 白写 PSRAM）
+#   · display.cpp   开机打印搬运缓冲行数 / 自愈间隔 / panel 句柄是否有效
+#     （句柄无效 = 自愈根本没跑，之前没法确认这一点）
+# 重编：ClockWeatherSetup 1959238 字节 (61%) / RAM 166996 (50%) / error 0 / warning 0
+
+## 追加：大时钟页日期放大 + 设置页加屏幕亮度
+# 1) 大时钟页日期 22px -> 40px
+#    · 新增 font_cjk_40.c（39 字：0-9 月日周年星期一二三四五六 正在同步时间…，38KB）
+#    · ui.cpp IDLE_TIME_Y -72 -> -88、IDLE_DATE_Y 60 -> 76（给 40px 让位）
+#    · gen_fonts.sh 增加 font_cjk_40（只在 ClockWeatherSetup 生成）
+# 2) 设置页新增「屏幕亮度」
+#    · settings: settings_brightness() / settings_save_brightness()（NVS 键 bright，
+#      范围 10~100，下限锁死防止调成全黑；故意不 ++revision，免得改亮度触发重拉天气）
+#    · setup_ui: 新增亮度页（－/＋ 一次 10% + 25/50/75/100 四个档位），
+#      WiFi 列表页顶栏加「亮度」按钮（重新扫描/地区/亮度 三个按钮）
+#    · ClockWeatherSetup.ino: 开机 display_set_brightness(settings_brightness())
+#    · 触摸诊断行改动：加 bottom 参数，WiFi 页改放页面底部整条（顶栏让给三个按钮），
+#      并把 UI_SHOW_TOUCH_DEBUG 默认改为 0
+#    · 重新生成 font_cjk_28（293 字，含新文案：亮度/屏幕/自动/保存/周 等）
+# 重编：ClockWeatherSetup 1959238 字节 (62%) / RAM 166996 (50%) / error 0 / warning 0
+
+## 追加：亮度下限 10% 会导致背光全黑（实板）+ 大时钟时间下移
+# 1) 严重问题：实板把亮度调到 10%~25% 后背光直接不亮；因为亮度存了 Flash，
+#    重启还是黑的，界面上无法自救。
+#    修正：
+#      · settings.h BRIGHTNESS_MIN 10 -> 40（实测一定看得见的下限）
+#      · 预设档位 25/50/75/100 -> 40/60/80/100
+#      · settings_load() 会把存档里低于下限的值夹上来 —— 所以「重烧这版固件」
+#        本身就能把黑屏救回来（不用清 Flash，WiFi/地区都保留）
+#      · 新增串口救急命令：串口里敲  bright 100  回车 -> 立刻回 100% 并保存
+#        （手动收字节实现，不用 readStringUntil，避免阻塞界面）
+# 2) 大时钟页时间与右上角「已联网」贴太近：IDLE_TIME_Y -88 -> -72
+#    （时间 62~274，状态行 18~44，日期 297~335，天气条 352~468，各留 15px 以上）
+# 重编：ClockWeatherSetup 1959238 字节 (62%) / RAM 166996 (50%) / error 0 / warning 0
+
+## 追加：实板确认背光只能开/关 -> 亮度功能默认关闭
+# 实板逐档实测（背光 GPIO2，PWM 20kHz/8bit）：
+#   100% -> 正常；80% / 60% / 40% / 10~25% -> 全黑（不是变暗，是一点不亮）
+# => GPIO2 接的是背光驱动的 EN 脚，20kHz 方波跟不上（软启动来不及），
+#    只有常高才工作。软件绕不过去。
+# 改动：
+#   · config.h 新增 UI_ENABLE_BRIGHTNESS，默认 0：
+#       不显示「亮度」按钮，整页连代码一起编译掉，背光固定 100%
+#       （已用 grep 校验固件里不再含「亮度页」字符串）
+#   · settings.cpp：该开关为 0 时，忽略 Flash 里的亮度存档，一律 100%
+#   · 串口救急命令改成宽容解析 + 无需行尾符：
+#       bright 100 / bright100 / 100   都认（静默 200ms 即视为一条命令）
+#   · 新增串口命令 freq <hz>（调光实验，不用重刷）：
+#       freq 500 -> 降背光 PWM 频率；再 bright 60 试能否调光
+#   · display.cpp/.h 新增 display_set_bl_freq() / display_get_brightness()，
+#     背光频率提到 board_pins.h 的 LCD_BL_LEDC_FREQ
+#   · 版本标记 -> v1.5（方便确认烧的是哪一版）
+# 重编：ClockWeatherSetup 1959238 字节 (62%) / RAM 166996 (50%) / error 0 / warning 0
+
+## 追加：去掉屏幕亮度调节（用户要求「不用亮度调节了」）
+# 背光是使能型（只有全亮能用，见上一条实测），留着半开半闭的开关只是噪音，
+# 所以这次把整个功能连同相关代码一起删干净：
+#   · config.h     删 UI_ENABLE_BRIGHTNESS 开关，FIRMWARE_TAG -> v1.6
+#   · settings.*   删 BRIGHTNESS_MIN/MAX/STEP、settings_brightness()、
+#                  settings_save_brightness()、NVS 键 "bright" 的读写与开机日志
+#   · display.*    删 display_set_brightness() / display_get_brightness() /
+#                  display_set_bl_freq() / s_bl_percent —— 背光不再对外提供接口，
+#                  bl_init() 里一次写满占空比（GPIO2 常亮），谁也没法把屏幕调黑
+#   · board_pins.h 删 LCD_BL_LEDC_FREQ（挪进 display.cpp 当 BL_LEDC_FREQ），
+#                  只留下「为什么不能调光」的实板结论
+#   · setup_ui.cpp 删整个亮度页（约 100 行）+ 顶栏「亮度」按钮 + 三个相关前置声明；
+#                  WiFi 列表高度改成跟着 UI_SHOW_TOUCH_DEBUG 走：
+#                  没开诊断行时 310 -> 352（列表能多放一行）
+#   · .ino         删串口救急命令整段（serial_handle_cmd + freq/bright/纯数字解析
+#                  + 主循环里那段收字节的代码）和开机时按存档设亮度的调用；
+#                  setup() 里少了一个对 settings 的依赖
+#   · README / 预览图同步更新（向导从四个页面回到三个）
+# 校验：ELF 里已搜不到「屏幕亮度」「100%」「[命令] 亮度」等字符串，
+#       唯一剩下的「亮度」二字是启动横幅里的版本号 v1.6 (去掉亮度调节)
+# 重编：ClockWeatherSetup 1956014 字节 (62%) / RAM 166916 (50%) / error 0 / warning 0
+#       （对比上一版：Flash -3224 字节，静态 RAM -80 字节）
+
+## 追加：三天预报的横条由「温度区间」换成「降水概率」
+# 用户问「今天 明天 后天温度下面那条横条是什么用的」，随后决定改成降水概率条。
+# 改动：
+#   · weather.h      WeatherDay 增加 float pop（降水概率上限 %，-1 = 接口没给）
+#   · weather.cpp    daily 参数追加 precipitation_probability_max；
+#                    单独解析成 pop[]，缺字段/null 只影响概率条，不影响天数和温度；
+#                    日志多打一行「三天降水概率: 0% / 8% / 10%」
+#   · ui.cpp         删掉 span_min/span_max 温区算法（及 COL_WARM / COL_COOL 两个
+#                    配色宏），换成固定 0~100% 刻度的概率条：
+#                      长度 = 概率（最小的 1% 也留 6px）
+#                      颜色 <25% 灰蓝 / 25~60% 浅蓝 / >60% 亮蓝
+#                      右侧加一个 「60%」标签（font_cjk_22，实测「100%」56.8px，
+#                      所以标签位留 60px，轨道 148px）
+#   · 轨道 y 90 -> 92，标签 TOP_RIGHT(-16, 82)，两者都在卡片 112px 内不重叠
+#   · 接口没给 pop 时画 "--"，其余照常
+#   · 版本标记 -> v1.7
+#   · tools/gen_preview.js / preview.svg 同步（那张看板示意图上的条也换成概率条）
+#
+# 解析逻辑用真接口验过：把 block_range()/json_number_array() 逐行照搬到脚本，
+# 对宁波/北京/拉萨/三亚各拉一次线上数据，pop 都稳定返回 3 个数
+#   宁波 [0,8,10]  北京 [2,37,16]  拉萨 [71,100,82]  三亚 [44,66,56]
+# 边界（0 和 100）都覆盖到了；也确认 daily_units 里的同名字段不会被误匹配。
+# 重编：ClockWeatherSetup 1956370 字节 (62%) / RAM 166980 (50%) / error 0 / warning 0
+#       （对比上一版：Flash +356 字节，静态 RAM +64 字节）
+
+## 追加：跑久了「左边一条一条横线」——实板照片定位到搬运缓冲
+# 现象（用户拍照，IMG_5611.HEIC）：连续运行一段时间后，满屏大时钟的数字左侧
+# 出现一排 1px 细的短横线，都是深色（背景色），长度随机，重启后消失。
+#
+# 定位过程：
+#   1. 把照片转成 JPEG 放大逐块看：横线是「行首一小段像上一行的内容」，
+#      不像全行错位，也不像像素坏点。
+#   2. 量相邻横线的间距 = 约 16 行（照片有透视，14.5~16.5 行）。
+#      当时 board_pins.h 的 LCD_BOUNCE_BUFFER_PX 正好是 16 行 —— 完全对上。
+#   3. 读 ESP-IDF v5.5.1 的 esp_lcd_panel_rgb.c（arduino-esp32 3.3.11 就是这个版本）：
+#        搬运缓冲有两块，DMA 读 A 的同时 EOF 中断往 B 里 memcpy；
+#        期限 = 一块的扫描时间（16 行×800px/16MHz ≈ 800us），
+#        25.6KB 拷贝 ≈ 640us，余量只有 ~160us。WiFi 突发 / 满屏重绘的
+#        cache 写回 / PSRAM 升温降速都能吃掉它，于是每块开头露出上一块的内容。
+#       （另外查到 IDFGH-18263：bounce 模式在 CONFIG_LCD_RGB_RESTART_IN_VSYNC=y
+#        时 bb_eof_count 不复位，一次丢 EOF 就永久错位；好在我们这个版本没开
+#        那个选项，驱动每帧 VSYNC 会把计数清零并在丢块时自动 restart，
+#        所以只会是「闪」不会永久坏 —— 这也解释了为什么之前那个 5 秒自愈
+#        对它没用。）
+#
+# 改动（v1.8）：
+#   · board_pins.h  LCD_BOUNCE_LINES 16 -> 24（76.8KB 内部 RAM）：
+#                   每块期限 800us -> 1.2ms、拷贝 640us -> 960us，余量 160 -> 240us；
+#                   每帧搬运次数 30 -> 20。保留 LCD_BOUNCE_BUFFER_PX 供旧代码引用。
+#   · display.cpp   面板初始化改成「24 -> 20 -> 16 行」自动降档：内部 RAM 不够时
+#                   esp_lcd_new_rgb_panel() 返回 NULL，就自动退一档重来，
+#                   绝不因为改了常量而开机重启循环；日志打印实际用了几行。
+#                   另外新增 display_set_pclk()，走 esp_lcd_rgb_panel_set_pclk()。
+#   · display.h     声明 display_set_pclk()，补 <stdint.h>（uint32_t）。
+#   · .ino          DEBUG_SERIAL 下新增诊断命令 pclk <MHz>（8~24，不写 Flash）：
+#                     pclk 14  -> 降像素时钟，PSRAM 带宽需求 -12%
+#                     pclk 16  -> 回默认
+#                   降到面板不认的值会白屏，串口发 pclk 16 立刻恢复，重启也回默认。
+#   · 版本标记 -> v1.8（搬运缓冲24行+自动降档）
+# 重编：ClockWeatherSetup 1959390 字节 (62%) / RAM 167044 (50%) / error 0 / warning 0
+#       （对比上一版：Flash +3020 字节，静态 RAM +64 字节；
+#         搬运缓冲是运行时从堆里申请的，不计入「静态 RAM」）

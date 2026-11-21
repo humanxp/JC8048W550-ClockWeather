@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
+#include <esp_lcd_panel_rgb.h>   /* esp_lcd_rgb_panel_restart() 用 */
 #include <lvgl.h>
 
 #include "board_pins.h"
@@ -184,9 +185,35 @@ bool display_init()
     return true;
 }
 
+/* ------------------------------------------------------------------ */
+/*  RGB GDMA 自愈                                                      */
+/*                                                                     */
+/*  ESP32-S3 的 RGB GDMA 会「永久失步」，表现为随机出现局部花屏/拉丝， */
+/*  而且一直不复原、只有重启才好。ESP-IDF 官方给的开关是编译期的       */
+/*  CONFIG_LCD_RGB_RESTART_IN_VSYNC，Arduino 改不了，所以这里改成      */
+/*  运行时定期调 esp_lcd_rgb_panel_restart() 让它自愈。                */
+/*                                                                     */
+/*  这个函数只设一个内部标志，真正的复位在下一个 VSYNC 中断里做，      */
+/*  所以不会打断当前正在输出的这一帧。                                 */
+/* ------------------------------------------------------------------ */
 void display_tick()
 {
     lv_timer_handler();
+
+#if LCD_DMA_RESTART_FIX
+    static uint32_t s_last_restart_ms = 0;
+    uint32_t now = millis();
+
+    if (s_panel != nullptr &&
+        now - s_last_restart_ms >= (uint32_t)LCD_DMA_RESTART_INTERVAL_MS) {
+        s_last_restart_ms = now;
+        /* _panel_handle 需要先给 Arduino_GFX 打补丁放开权限，
+           见 board_pins.h 里 LCD_DMA_RESTART_FIX 的说明 */
+        if (s_panel->_panel_handle != nullptr) {
+            esp_lcd_rgb_panel_restart(s_panel->_panel_handle);
+        }
+    }
+#endif
 }
 
 void display_set_brightness(int percent)
