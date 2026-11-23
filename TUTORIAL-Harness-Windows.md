@@ -135,3 +135,42 @@ arduino-cli compile --fqbn "esp32:esp32:esp32s3:PSRAM=opi,FlashSize=16M,Partitio
 ```
 
 别忘了同步更新 `ClockWeatherSetup/README.md` 里对应章节和 `tools/verified-build.log`。
+
+---
+
+## 七、如果 harness 只允许写工作区
+
+DSH 默认的文件权限是「只能改工作区」。而 `arduino-cli` 默认要写
+`%LOCALAPPDATA%\Arduino15`（核心/缓存）和 `%USERPROFILE%\Documents\Arduino`（库），
+**这两个都在工作区外，会被沙箱挡掉**。两个办法，任选一个：
+
+**A. 放权**：让 DSH 这个会话用完整文件权限（danger-full-access）。
+
+**B. 把 arduino-cli 的目录也搬进工作区**（推荐，干净）：
+
+```powershell
+# 在工作区根目录建一个 arduino-cli.yaml
+@"
+directories:
+  data: C:\Users\MinG\Documents\data\.arduino\data
+  downloads: C:\Users\MinG\Documents\data\.arduino\staging
+  user: C:\Users\MinG\Documents\data\.arduino\user
+"@ | Set-Content -Encoding utf8 .\arduino-cli.yaml
+
+# 之后所有命令都带上 --config-file
+arduino-cli --config-file .\arduino-cli.yaml core install esp32:esp32@3.3.11
+arduino-cli --config-file .\arduino-cli.yaml lib install "lvgl@8.4.0"
+arduino-cli --config-file .\arduino-cli.yaml lib install "GFX Library for Arduino@1.6.8"
+
+# lv_conf.h 放到这个「工作区内」的 libraries 目录
+Copy-Item .\ClockWeatherSetup\lv_conf.h .\.arduino\user\libraries\lv_conf.h -Force
+
+# 编译时把构建目录也指定到工作区
+arduino-cli --config-file .\arduino-cli.yaml compile --upload -p COM10 `
+  --fqbn "esp32:esp32:esp32s3:PSRAM=opi,FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,CDCOnBoot=default,FlashMode=qio,UploadSpeed=921600" `
+  --build-path .\.build\ClockWeatherSetup .\ClockWeatherSetup
+```
+
+注意：`patch_gfx.ps1` 默认改的是 `Documents\Arduino\libraries` 下那份库；
+把目录搬进工作区后，要改的是 `.arduino\user\libraries\...` 那份 ——
+脚本支持传路径参数，或者改完用 `Select-String _panel_handle` 确认已经是 `public:`。
