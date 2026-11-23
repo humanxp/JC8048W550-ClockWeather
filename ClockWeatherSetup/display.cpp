@@ -174,11 +174,13 @@ bool display_init()
        最后那个 bounce buffer 很重要：不设的话 DMA 直接从 PSRAM 读，
        PSRAM 一忙画面就闪烁。详见 board_pins.h 里的说明。 */
 
-    /* 搬运缓冲按「大 -> 小」试：每块 800*行数*2 字节，两份。
-       24 行约 76.8KB、20 行约 64KB、16 行约 51.2KB（都是内部 RAM）。
+    /* 搬运缓冲按「大 -> 小」试：每块 800*行数*2 字节，两份（内部 RAM）。
+       12 行约 38.4KB、10 行 32KB、8 行 25.6KB。
        内存不够时 esp_lcd_new_rgb_panel() 会返回 NULL，绝不能让板子卡在
-       开机重启循环里，所以失败就自动降一档。 */
-    static const int k_bounce_lines[] = { LCD_BOUNCE_LINES, 20, 16 };
+       开机重启循环里，所以失败就自动降一档。
+       ⚠ 这三档都是「预读装得进 32KB L1 缓存」的尺寸；别往上加，
+         见 board_pins.h 里 LCD_BOUNCE_LINES 的说明。 */
+    static const int k_bounce_lines[] = { LCD_BOUNCE_LINES, 10, 8 };
     const int k_bounce_tries = (int)(sizeof(k_bounce_lines) / sizeof(k_bounce_lines[0]));
     int lines_used = 0;
 

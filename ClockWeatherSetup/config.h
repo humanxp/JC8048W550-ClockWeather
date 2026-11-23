@@ -101,4 +101,4 @@
 /* 固件版本标记：开机第一行会打印。
  * 换过代码但串口里这行没变 → 说明烧进去的还是旧固件，别怀疑代码。
  * 每次改动都建议把这个号 +1。 */
-#define FIRMWARE_TAG            "ClockWeatherSetup v1.8 (搬运缓冲24行+自动降档)"
+#define FIRMWARE_TAG            "ClockWeatherSetup v1.9 (搬运缓冲回到缓存装得下的12行)"

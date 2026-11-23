@@ -7,7 +7,7 @@
 # 数字为最近一次重编译实测（arduino-cli + esp32:esp32@3.3.11 +
 #   lvgl@8.4.0 + GFX Library for Arduino@1.6.8，FQBN 见 tools/build.sh）
 # ClockWeather        1908322 字节 (60%)   静态 RAM  99636 字节 (30%)
-# ClockWeatherSetup   1959390 字节 (62%)   静态 RAM 167044 字节 (50%)
+# ClockWeatherSetup   1959406 字节 (62%)   静态 RAM 167044 字节 (50%)
 # ScreenTest           359072 字节 (11%)   静态 RAM  24112 字节  (7%)
 #
 ## 真机验证（JC8048W550 实板）
@@ -403,3 +403,26 @@
 # 重编：ClockWeatherSetup 1959390 字节 (62%) / RAM 167044 (50%) / error 0 / warning 0
 #       （对比上一版：Flash +3020 字节，静态 RAM +64 字节；
 #         搬运缓冲是运行时从堆里申请的，不计入「静态 RAM」）
+
+## 修正：v1.8 把搬运缓冲加到 24 行是错的（超过 32KB L1 数据缓存）
+# 用户反馈（v1.8 刷机后）：「刷机后马上就有这个现象」「一会好一会出问题」，
+# 并提供了新照片（07:56，已联网、天气已更新）。
+# 测量：在照片上逐条量横线间距 ≈ 23~24 屏幕行 —— 正好等于 v1.8 的 24 行，
+#       说明 24 行确实生效了，且横线仍是「每块搬运缓冲的开头」露旧数据。
+# 关键事实（从 sdkconfig 查到）：
+#   CONFIG_ESP32S3_DATA_CACHE_SIZE=0x8000  → L1 数据缓存只有 32KB
+#   IDF 的 lcd_rgb_panel_fill_bounce_buffer() 每搬完一块会
+#   Cache_Start_DCache_Preload(下一块, bb_size) 预读下一块进缓存：
+#       12 行 = 19.2KB  装得下，留 12.8KB   ✓
+#       16 行 = 25.6KB  勉强，只剩 6.4KB    ○
+#       24 行 = 38.4KB  **装不下** → 预读把整个缓存冲掉，
+#                        下一块 memcpy 全落回 PSRAM 慢读 → 每块都迟到 ✗
+#   ⇒ 这与实测完全吻合：24 行「一刷就有」，16 行「用久了偶尔有」。
+# 改动（v1.9）：
+#   · board_pins.h  LCD_BOUNCE_LINES 24 -> 12（38.4KB 内部 RAM，缓存留 12.8KB），
+#                   并把「别超过 16 行、要余量请降 PCLK」写进注释
+#   · display.cpp   自动降档链改成 12 -> 10 -> 8（都是缓存友好尺寸）
+#   · config.h      FIRMWARE_TAG -> v1.9
+#   · README        该章节重写：两个坑（行数不能加、带宽只能靠 PCLK），
+#                   并给出 PCLK 实际分频梯：16.00 / 14.55 / 13.33 MHz
+# 重编：ClockWeatherSetup 1959406 字节 (62%) / RAM 167044 (50%) / error 0 / warning 0
