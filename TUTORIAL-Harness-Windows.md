@@ -15,16 +15,15 @@ arduino-cli core update-index
 arduino-cli core install esp32:esp32@3.3.11
 arduino-cli lib update-index
 arduino-cli lib install "lvgl@8.4.0"
-arduino-cli lib install "GFX Library for Arduino@1.6.8"
-
-# 关键：给 Arduino_GFX 打补丁，把 _panel_handle 从 private 放开
-powershell -ExecutionPolicy Bypass -File .\tools\patch_gfx.ps1
+# 注意：ClockWeatherSetup v2.3 起不再依赖 Arduino_GFX（直接调 ESP-IDF 的 esp_lcd），
+# 所以既不用装 GFX 库、也不用打 _panel_handle 补丁。只有编译 ClockWeather /
+# ScreenTest 时才需要：arduino-cli lib install "GFX Library for Arduino@1.6.8"
+# 然后跑 .\tools\patch_gfx.ps1
 
 # 关键：lv_conf.h 必须放在 libraries 目录下（和 lvgl 文件夹同级）
 Copy-Item .\ClockWeatherSetup\lv_conf.h "$env:USERPROFILE\Documents\Arduino\libraries\lv_conf.h" -Force
 ```
 
-> 没打补丁会编译报错：`'_panel_handle' is private within this context`。
 > 没放 `lv_conf.h`：LVGL 会用库自带默认配置 —— 缺 KEYBOARD / TEXTAREA，向导页直接编译失败。
 
 ## 二、编译 + 烧录（一条命令）
@@ -160,7 +159,8 @@ directories:
 # 之后所有命令都带上 --config-file
 arduino-cli --config-file .\arduino-cli.yaml core install esp32:esp32@3.3.11
 arduino-cli --config-file .\arduino-cli.yaml lib install "lvgl@8.4.0"
-arduino-cli --config-file .\arduino-cli.yaml lib install "GFX Library for Arduino@1.6.8"
+# （只在编译 ClockWeather / ScreenTest 时才需要 GFX 库）
+# arduino-cli --config-file .\arduino-cli.yaml lib install "GFX Library for Arduino@1.6.8"
 
 # lv_conf.h 放到这个「工作区内」的 libraries 目录
 Copy-Item .\ClockWeatherSetup\lv_conf.h .\.arduino\user\libraries\lv_conf.h -Force

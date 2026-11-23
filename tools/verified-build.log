@@ -7,7 +7,7 @@
 # 数字为最近一次重编译实测（arduino-cli + esp32:esp32@3.3.11 +
 #   lvgl@8.4.0 + GFX Library for Arduino@1.6.8，FQBN 见 tools/build.sh）
 # ClockWeather        1908322 字节 (60%)   静态 RAM  99636 字节 (30%)
-# ClockWeatherSetup   1959406 字节 (62%)   静态 RAM 167044 字节 (50%)
+# ClockWeatherSetup   1953366 字节 (62%)   静态 RAM 167044 字节 (50%)
 # ScreenTest           359072 字节 (11%)   静态 RAM  24112 字节  (7%)
 #
 ## 真机验证（JC8048W550 实板）
@@ -426,3 +426,35 @@
 #   · README        该章节重写：两个坑（行数不能加、带宽只能靠 PCLK），
 #                   并给出 PCLK 实际分频梯：16.00 / 14.55 / 13.33 MHz
 # 重编：ClockWeatherSetup 1959406 字节 (62%) / RAM 167044 (50%) / error 0 / warning 0
+
+## v2.0 ~ v2.4：在 Windows 侧实测后重做显示层（自填搬运缓冲）
+# 这一段改动是在 Windows 上的另一个 harness 会话里做的（板子插在那台机器上），
+# 文件传回本工作区后在这里重新编译核对：1953366 字节 (62%) / RAM 166980 (50%)
+# / 0 error / 0 warning。下面记它测出来的关键结论（都写进 README 了）：
+#
+# v2.0  · 去掉「每 5 秒手动复位 DMA」——查 sdkconfig 发现 arduino-esp32 3.3.11
+#         里 CONFIG_LCD_RGB_RESTART_IN_VSYNC=y，驱动本来就每帧在 VSYNC 复位，
+#         手动那次多余，还可能自己插一条线。
+#       · flush 整行宽的块合并成一次 memcpy + 一次 cache 写回。
+#       · 串口命令拆到 diag.cpp（help/bench/stats/pclk/bounce/restart/reboot）。
+#
+# v2.1  · bench 实测推翻「12 行够用」：热拷贝 499µs / 期限 600µs 仍在抖。
+#         原因是 memcpy 的**目的区**也占 cache line，工作集 = 2×块字节数，
+#         不是只算源那一半。
+# v2.2  · 实板打回：这块 ST7262 **只认 16MHz**。降到 14.55MHz 整屏蓝/白/绿/红
+#         纯色块乱跳，`pclk 16` 立刻恢复 → 「降 PCLK 加余量」这条路彻底走不通。
+# v2.3  · display.cpp 不再用 Arduino_GFX：直接 esp_lcd_new_rgb_panel() +
+#         flags.no_fb + on_bounce_empty 自己填搬运缓冲，预读提前 1~2 块可调。
+#         → 顺带不再需要 _panel_handle 补丁，固件小 12KB。
+#       · 中断里统计每次填充耗时/超期限次数：prefetch 0 块 0.57% →
+#         1 块 0.002%（5.4 万次里 1 次）。
+# v2.4  · 放大照片看清短线成因：不是「拷贝太慢」，而是**每块边界那一行整体
+#         左移约 16px**（16 = LCD FIFO 深度）。所以短线数 ∝ 块边界数。
+#       · 用 bounce N 现场扫 6/8/12/16/20/24 行，16 行：30 个边界/帧、
+#         填充最长 750µs / 期限 800µs、超期限 0%。
+#       · dma_burst_size 实测只能 ≤64（128/256 被 GDMA 拒），已加自动降档。
+#
+# 本工作区的改动：补根 README / Windows 交接文档里「不再需要 Arduino_GFX」；
+# 记这条日志。代码本身逐行审过（数据线顺序与 Arduino_GFX useBigEndian=false
+# 路径一致、no_fb+bounce 组合符合 IDF 约束、失败路径会 esp_lcd_panel_del、
+# 帧缓冲用 PSRAM 64B 对齐 + cache 写回、config.h 里没有 WiFi 密码）。

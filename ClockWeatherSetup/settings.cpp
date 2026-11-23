@@ -4,6 +4,7 @@
 #include <Preferences.h>
 #include <string.h>
 
+#include "board_pins.h"     /* LCD_HEIGHT：校验搬运缓冲行数是否整除屏幕高度 */
 #include "config.h"
 
 /* NVS 命名空间（最长 15 字符）。和 ClockWeather 天气缓存用的 "clockwx" 分开，互不干扰。 */
@@ -155,4 +156,53 @@ void settings_clear_all()
     s_lon = 0.0f;
     s_revision++;
     Serial.println("[设置] 已清空（下次开机会重新进向导）");
+}
+
+/* ------------------------------------------------------------------ */
+/*  调试旋钮：DMA 搬运缓冲行数                                          */
+/*                                                                     */
+/*  单独用一次 Preferences::begin 读，不塞进 settings_load()：因为        */
+/*  display_init() 在 settings_load() 之前就要用到这个值。              */
+/*  读写都是很小的 NVS 操作，开机一次 + 手动命令时才发生，不影响运行。  */
+/* ------------------------------------------------------------------ */
+int settings_bounce_lines()
+{
+    /* 语义：-1 = 没存过（用 board_pins.h 的默认值）；0 = 明确要「不用搬运缓冲」 */
+    int lines = -1;
+
+    Preferences prefs;
+    if (prefs.begin(SETTINGS_NVS_NS, true)) {
+        lines = (int)prefs.getInt("bounce", -1);
+        prefs.end();
+    }
+
+    if (lines < 0) return -1;
+
+    /* 非负值必须合法（整除屏幕高度，否则 IDF 会断言）。
+       v2.3 起是 no_fb 模式，搬运缓冲不能为 0（IDF 会拒绝），0 一律当没存过。 */
+    if (lines <= 0 || lines > 60 || (LCD_HEIGHT % lines) != 0) {
+        if (lines > 0) {
+            Serial.printf("[设置] 存下来的搬运缓冲行数 %d 不合法（必须整除 %d），忽略\n",
+                          lines, LCD_HEIGHT);
+        }
+        return -1;
+    }
+    return lines;
+}
+
+void settings_save_bounce_lines(int lines)
+{
+    /* lines < 0 = 清除这条设置（回到 board_pins.h 的默认值）
+       lines = 0 = 明确要「不用搬运缓冲」（DMA 直接读 PSRAM） */
+    Preferences prefs;
+    if (prefs.begin(SETTINGS_NVS_NS, false)) {
+        if (lines < 0) prefs.remove("bounce");
+        else           prefs.putInt("bounce", lines);
+        prefs.end();
+    }
+    if (lines < 0) {
+        Serial.println("[设置] 搬运缓冲行数 -> 代码默认值（重启后生效）");
+    } else {
+        Serial.printf("[设置] 搬运缓冲行数 -> %d（重启后生效）\n", lines);
+    }
 }

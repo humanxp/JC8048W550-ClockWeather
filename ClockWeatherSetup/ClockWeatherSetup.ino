@@ -9,7 +9,8 @@
  *      看板停留 5 分钟（config.h 的 IDLE_RETURN_MIN）自动回到大时钟
  *
  *  硬件：ESP32-S3-WROOM-1 N16R8 + 5 寸 800x480 IPS（ST7262 RGB）+ GT911 电容触摸
- *  软件：Arduino + Arduino_GFX + LVGL 8.4 + Open-Meteo（免 API Key）
+ *  软件：Arduino + ESP-IDF LCD 驱动（v2.3 起不再用 Arduino_GFX）+ LVGL 8.4
+ *        + Open-Meteo（免 API Key）
  *
  *  详细的接线 / 库安装 / 烧录参数见同目录 README.md。
  * ============================================================================
@@ -23,6 +24,7 @@
 #include <freertos/task.h>
 
 #include "display.h"
+#include "diag.h"
 #include "net_time.h"
 #include "settings.h"
 #include "setup_ui.h"
@@ -211,43 +213,11 @@ static const char *reset_reason_text(esp_reset_reason_t r)
 /* ------------------------------------------------------------------ */
 /*  串口诊断命令（只在 DEBUG_SERIAL=1 时编译）                          */
 /*                                                                     */
-/*  目前只有一条：                                                      */
-/*      pclk 14      把像素时钟降到 14MHz 左右                          */
-/*      pclk 16      回到默认 16MHz                                     */
-/*                                                                     */
-/*  用途：屏幕左边出现「每隔十几行一条短横线」的拉丝时，说明 PSRAM 带宽  */
-/*  不够用。降一点像素时钟，面板每秒要的字节就少一点，通常能压下去。    */
-/*  但像素时钟同时决定刷新率，降到面板不认的值会白屏 —— 所以做成运行时  */
-/*  命令：白屏了就在串口里再发 pclk 16，立刻回来；重启也一定回到默认值。 */
+/*  v2.0 起全部搬到 diag.cpp 里，这里只留一句调用。为什么搬走：         */
+/*  排「屏幕左边一条一条」要反复做对照实验，命令从 1 条涨到 7 条        */
+/*  （bench / stats / pclk / bounce / restart / reboot / help），        */
+/*  塞在主循环里既不好读，也不好改。                                     */
 /* ------------------------------------------------------------------ */
-#if DEBUG_SERIAL
-static void serial_handle_cmd(const String &raw)
-{
-    String cmd = raw;
-    cmd.trim();
-    cmd.toLowerCase();
-    if (cmd.length() == 0) return;
-
-    if (cmd.startsWith("pclk")) {
-        String rest = cmd.substring(4);
-        rest.trim();
-        float mhz = rest.toFloat();
-        if (mhz < 8.0f || mhz > 24.0f) {
-            Serial.println("[命令] 用法：pclk 14（8~24，单位 MHz）");
-            return;
-        }
-        uint32_t hz = (uint32_t)(mhz * 1000000.0f + 0.5f);
-        if (display_set_pclk(hz)) {
-            Serial.printf("[命令] 像素时钟 -> 请求 %.2f MHz（驱动取最接近的分频）\n", (double)mhz);
-        } else {
-            Serial.println("[命令] 改像素时钟失败");
-        }
-        return;
-    }
-
-    Serial.println("[命令] 可用：pclk 14 / pclk 16");
-}
-#endif
 
 /* ------------------------------------------------------------------ */
 void setup()
@@ -268,15 +238,14 @@ void setup()
                   (unsigned)ESP.getFreePsram());
 
     /* ---------------------------------------------------------------
-       先单独拦住「PSRAM 没开」这一种情况。
-
-       为什么必须拦在这里：800x480 的 RGB 屏需要 750KB 帧缓冲，
-       ESP32-S3 内部 RAM 只有 512KB，所以帧缓冲必须放 PSRAM。
-       PSRAM 没开的话，Arduino_GFX 内部的 esp_lcd_new_rgb_panel() 会走
-       ESP_ERROR_CHECK 直接 abort —— 它根本不会把失败返回给我们，
-       用户看到的就是一串看不懂的 Backtrace + 无限重启。
-       这里提前判断，把话说清楚，然后停住不重启（否则日志会被刷走）。
-       --------------------------------------------------------------- */
+     *  先单独拦住「PSRAM 没开」这一种情况。
+     *
+     *  为什么必须拦在这里：800x480 的 RGB 屏需要 750KB 帧缓冲，
+     *  ESP32-S3 内部 RAM 只有 512KB，所以帧缓冲必须放 PSRAM。
+     *  PSRAM 没开的话，建面板/分配帧缓冲会失败（v2.3 起 display_init()
+     *  会把 esp_err_t 打出来，但用户多半看不懂），随后就是无限重启。
+     *  这里提前判断，把话说清楚，然后停住不重启（否则日志会被刷走）。
+     * --------------------------------------------------------------- */
     if (!psramFound() || ESP.getPsramSize() < (800 * 480 * 2)) {
         Serial.println();
         Serial.println("####################################################");
@@ -310,8 +279,10 @@ void setup()
         Serial.println("[天气] 互斥量创建失败，本机将不更新天气");
     }
 
-    /* 1. 屏幕 + LVGL */
-    if (!display_init()) {
+    /* 1. 屏幕 + LVGL
+         搬运缓冲行数先问 NVS（串口 bounce 命令写进去的），没有就用
+         board_pins.h 的 LCD_BOUNCE_LINES。必须在建面板之前定下来。 */
+    if (!display_init(settings_bounce_lines())) {
         Serial.println("屏幕初始化失败，5 秒后重启重试…");
         delay(5000);
         ESP.restart();
@@ -354,6 +325,10 @@ void setup()
     }
 
     Serial.println("初始化完成，进入主循环");
+
+#if DEBUG_SERIAL
+    diag_print_help();
+#endif
 }
 
 /* ------------------------------------------------------------------ */
@@ -452,29 +427,10 @@ void loop()
 
 #if DEBUG_SERIAL
     /* ---- 6.5 串口诊断命令 ----
-       串口监视器 115200，敲 pclk 14 回车（行尾符设成「无」也行，静默 200ms
-       就当一条命令）。只用来现场试像素时钟，不写 Flash。 */
-    {
-        static String   s_cmd;
-        static uint32_t s_cmd_ms = 0;
-
-        bool done = false;
-        while (Serial.available() > 0) {
-            char c = (char)Serial.read();
-            s_cmd_ms = millis();
-            if (c == '\n' || c == '\r') {
-                serial_handle_cmd(s_cmd);
-                s_cmd = "";
-                done = true;
-            } else if (s_cmd.length() < 16) {
-                s_cmd += c;
-            }
-        }
-        if (!done && s_cmd.length() > 0 && (uint32_t)(millis() - s_cmd_ms) > 200) {
-            serial_handle_cmd(s_cmd);
-            s_cmd = "";
-        }
-    }
+       串口监视器 115200 敲 help 看全部命令（bench / stats / pclk / bounce /
+       restart / reboot）。命令实现在 diag.cpp，不写 Flash（bounce 除外，
+       它本来就要存 NVS 才能开机生效）。 */
+    diag_poll();
 #endif
 
 #if DEBUG_SERIAL

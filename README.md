@@ -47,8 +47,13 @@ ESP32-S3 + 5 寸 800×480 RGB 屏（ST7262）+ GT911 电容触摸，做成一个
 | USB CDC On Boot | default |
 | 上传速度 | 921600 |
 
-依赖库：`lvgl@8.4.0`、`GFX Library for Arduino@1.6.8`（Arduino_GFX 需要一行补丁，
-`tools/setup_build_env.sh` 或 `tools/patch_gfx.ps1` 会自动改）。
+依赖库：`lvgl@8.4.0`。
+
+* **ClockWeatherSetup（v2.3 起）** 直接调 ESP-IDF 的 `esp_lcd_new_rgb_panel()`，
+  **不再需要 Arduino_GFX**，也不用给库打补丁；固件还小了约 12KB。
+* **ClockWeather / ScreenTest** 仍然用 `GFX Library for Arduino@1.6.8`，
+  且需要一行补丁（`_panel_handle` private → public），
+  `tools/setup_build_env.sh` 或 `tools/patch_gfx.ps1` 会自动改。
 
 细的坑（时序、PSRAM、花屏、亮度、触摸坐标基准）都写在各自的 README 里：
 [`ClockWeatherSetup/README.md`](ClockWeatherSetup/README.md) 最完整。
@@ -81,5 +86,6 @@ tools/                 构建与资源生成脚本
 
 * 天气：[Open-Meteo](https://open-meteo.com/)（免 API Key）
 * 行政区划坐标：阿里 [DataV.GeoAtlas](https://datav.aliyun.com/portal/school/atlas/area_selector)
-* 图形库：[LVGL 8.4](https://lvgl.io/)；显示驱动：[Arduino_GFX](https://github.com/moononournation/Arduino_GFX)
+* 图形库：[LVGL 8.4](https://lvgl.io/)；显示驱动：ESP-IDF `esp_lcd`（ClockWeatherSetup v2.3+）/
+  [Arduino_GFX](https://github.com/moononournation/Arduino_GFX)（ClockWeather / ScreenTest）
 * 字体：[Noto Sans SC](https://github.com/notofonts/noto-cjk)（SIL Open Font License 1.1）
